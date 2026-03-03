@@ -24,6 +24,12 @@ type Summary = {
   }
 }
 
+function formatTo3(value: number | string | undefined) {
+  if (value === null || value === undefined) return "-"
+  const n = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(n) ? n.toFixed(3) : String(value)
+}
+
 function LeaderCard({
   title,
   icon,
@@ -66,7 +72,7 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     rank: i + 1,
     name: p.player_name,
     team: p.team,
-    value: typeof p.AVG === "number" ? p.AVG.toFixed(3) : String(p.AVG ?? "-"),
+    value: formatTo3(p.AVG),
     sub: `${p.H ?? "-"}H / ${p.PA ?? "-"}PA`,
   }))
 
@@ -75,7 +81,7 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     name: p.player_name,
     team: p.team,
     value: String(p.HR ?? "-"),
-    sub: `${p.RBI ?? "-"}RBI / ${p.OPS ?? "-"} OPS`,
+    sub: `${p.RBI ?? "-"}RBI / ${formatTo3(p.OPS)} OPS`,
   }))
 
   const eraLeaders = (summary.leaderboards.era_top5 ?? []).map((p, i) => ({
