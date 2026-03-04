@@ -51,12 +51,19 @@ interface LeaderboardResponse {
   rows: HitterRow[]
 }
 
+const decimalMetrics = new Set(["AVG", "OBP", "SLG", "OPS"])
+
+function formatHitterMetric(value: number, metric: string) {
+  if (decimalMetrics.has(metric)) return Number(value).toFixed(3)
+  return String(Math.round(Number(value)))
+}
+
 
 
 export default function PlayersPage() {
   const [search, setSearch] = useState("")
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("all")
-  const [season, setSeason] = useState("2026")
+  const [season, setSeason] = useState("2025")
   const [viewMode, setViewMode] = useState<ViewMode>("table")
   const [hitterSort, setHitterSort] = useState<string>("OPS")
   const [pitcherSort, setPitcherSort] = useState<string>("ERA")
@@ -64,8 +71,10 @@ export default function PlayersPage() {
 
   const { data: leadboardData, isLoading: hitsLoading } = useQuery<LeaderboardResponse>({
     queryKey: ["leaderboard", season, teamFilter, showRegulation, hitterSort],
-    queryFn: () => fetchJson(`/api/leaderboard?season=${season}${teamFilter !== "all" ? `&team=${teamFilter}` : ""}&metric=${hitterSort}${showRegulation ? "" : "&min_pa=0"}&limit=30`),
+    queryFn: () => fetchJson(`/leaderboard?season=${season}${teamFilter !== "all" ? `&team=${teamFilter}` : ""}&metric=${hitterSort}${showRegulation ? "" : "&min_pa=0"}&limit=30`),
   })
+
+  console.log("Leaderboard Data:", leadboardData);
 
   // Filter out by search client-side for now
   const filteredHitters = useMemo(() => {
@@ -222,8 +231,8 @@ export default function PlayersPage() {
                   number: 0,
                   teamColor: "#666",
                   type: "hitter" as const,
-                  mainStat: h.OPS.toFixed(3),
-                  mainStatLabel: "OPS",
+                  mainStat: formatHitterMetric(Number(h[hitterSort as keyof HitterRow] ?? 0), hitterSort),
+                  mainStatLabel: hitterSort,
                   war: "N/A", // DB does not have WAR natively
                 }))}
               />
