@@ -1,291 +1,564 @@
 "use client"
 
-import { useState } from "react"
+import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { CalendarDays, Swords, Trophy, Users } from "lucide-react"
+
 import { SiteHeader } from "@/components/site-header"
-import { teams, topHitters, topPitchers } from "@/lib/mock-data"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Trophy, CalendarDays, Swords } from "lucide-react"
-import Link from "next/link"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchJson } from "@/lib/api"
+import { useLang, tr } from "@/components/lang-context"
 
-// Mock calendar data
-const scheduleData = [
-  { date: "07.10", opp: "LG", result: "W", score: "5-3", home: true },
-  { date: "07.11", opp: "LG", result: "L", score: "2-4", home: true },
-  { date: "07.12", opp: "LG", result: "W", score: "8-1", home: true },
-  { date: "07.13", opp: "두산", result: "W", score: "6-2", home: false },
-  { date: "07.14", opp: "두산", result: "W", score: "3-1", home: false },
-  { date: "07.15", opp: "두산", result: "L", score: "1-5", home: false },
-  { date: "07.16", opp: "NC", result: "-", score: "-", home: true },
-  { date: "07.17", opp: "NC", result: "-", score: "-", home: true },
-  { date: "07.18", opp: "NC", result: "-", score: "-", home: true },
-]
+type StandingsRow = {
+  rank: number
+  team: string
+  wins: number
+  losses: number
+  draws: number
+  win_pct: number | string
+  gb: number | string | null
+  streak?: string | null
+}
 
-// Mock head-to-head
-const h2hData = [
-  { opp: "KIA", w: 7, l: 5, d: 0, rs: 52, ra: 43 },
-  { opp: "LG", w: 6, l: 6, d: 1, rs: 48, ra: 49 },
-  { opp: "두산", w: 8, l: 4, d: 0, rs: 55, ra: 38 },
-  { opp: "KT", w: 7, l: 5, d: 0, rs: 50, ra: 42 },
-  { opp: "NC", w: 5, l: 7, d: 1, rs: 38, ra: 45 },
-  { opp: "삼성", w: 6, l: 6, d: 0, rs: 44, ra: 41 },
-  { opp: "롯데", w: 7, l: 3, d: 0, rs: 48, ra: 30 },
-  { opp: "한화", w: 4, l: 2, d: 0, rs: 32, ra: 22 },
-  { opp: "키움", w: 2, l: 0, d: 0, rs: 12, ra: 5 },
-]
+type StandingsResponse = {
+  requested_season: number
+  effective_season: number | null
+  as_of_date: string | null
+  mode: string
+  rows: StandingsRow[]
+}
+
+type LeaderRow = {
+  player_name: string
+  PA: number
+  H: number
+  HR: number
+  RBI: number
+  OPS: number
+}
+
+type TeamDetailResponse = {
+  season: number
+  team: string
+  leaders: {
+    ops_top10: LeaderRow[]
+    hr_top10: LeaderRow[]
+  }
+  recent_games: {
+    game_date: string
+    game_id: string
+    opp_team: string
+    team_score: number
+    opp_score: number
+    result: "W" | "L" | "D"
+  }[]
+  h2h: {
+    opp_team: string
+    wins: number
+    losses: number
+    draws: number
+    runs_for: number
+    runs_against: number
+  }[]
+}
+
+type TeamScheduleResponse = {
+  season: number
+  team: string
+  count: number
+  rows: {
+    game_date: string
+    game_id: string | null
+    away_team: string
+    home_team: string
+    game_time: string | null
+    stadium: string | null
+    status: string | null
+    is_home: boolean
+    opp_team: string
+    result: "W" | "L" | "D" | null
+    team_score: number | null
+    opp_score: number | null
+  }[]
+}
+
+const TEAM_OPTIONS = ["KIA", "LG", "KT", "NC", "SSG", "두산", "롯데", "삼성", "키움", "한화"] as const
+
+function formatPct(value: number | string) {
+  if (typeof value === "number") return value.toFixed(3)
+  return value
+}
+
+function formatDate(yyyymmdd: string) {
+  if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd
+  return `${yyyymmdd.slice(4, 6)}.${yyyymmdd.slice(6, 8)}`
+}
+
+function getDefaultSeasonByKstDate() {
+  const seasonStart = "2026-03-28"
+  const todayKst = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+  return todayKst >= seasonStart ? "2026" : "2025"
+}
 
 export default function TeamPage() {
-  const [selectedTeam, setSelectedTeam] = useState("SSG")
-  const team = teams.find((t) => t.id === selectedTeam) || teams[0]
+  const { lang } = useLang()
+  const [requestedSeason, setRequestedSeason] = useState(getDefaultSeasonByKstDate)
+  const [selectedTeam, setSelectedTeam] = useState("")
+  const [selectedMonth, setSelectedMonth] = useState("all")
 
-  // Mock team stats
-  const teamHitters = topHitters.filter((h) => h.team === selectedTeam)
-  const teamPitchers = topPitchers.filter((p) => p.team === selectedTeam)
+  const standingsQuery = useQuery<StandingsResponse>({
+    queryKey: ["standings", requestedSeason],
+    queryFn: () => fetchJson("/standings", { season: requestedSeason }),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const effectiveSeason = standingsQuery.data?.effective_season ?? Number(requestedSeason)
+  const standingsTeams = standingsQuery.data?.rows ?? []
+  const teams = standingsTeams.length
+    ? standingsTeams.map((row) => row.team)
+    : [...TEAM_OPTIONS]
+
+  useEffect(() => {
+    if (!teams.length) return
+    if (!selectedTeam || !teams.includes(selectedTeam)) {
+      setSelectedTeam(teams[0])
+    }
+  }, [teams, selectedTeam])
+
+  const selectedStanding = useMemo(
+    () => standingsTeams.find((t) => t.team === selectedTeam) ?? null,
+    [standingsTeams, selectedTeam]
+  )
+
+  const teamDetailQuery = useQuery<TeamDetailResponse>({
+    queryKey: ["team-detail", selectedTeam, effectiveSeason],
+    queryFn: () => fetchJson(`/teams/${encodeURIComponent(selectedTeam)}`, { season: effectiveSeason }),
+    enabled: Boolean(selectedTeam) && Boolean(effectiveSeason),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const teamScheduleQuery = useQuery<TeamScheduleResponse>({
+    queryKey: ["team-schedule", selectedTeam, effectiveSeason],
+    queryFn: () => fetchJson(`/teams/${encodeURIComponent(selectedTeam)}/schedule`, { season: effectiveSeason, limit: 300 }),
+    enabled: Boolean(selectedTeam) && Boolean(effectiveSeason),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const availableMonths = useMemo(() => {
+    const rows = teamScheduleQuery.data?.rows ?? []
+    const set = new Set<string>()
+    rows.forEach((row) => {
+      if (row.game_date && row.game_date.length >= 6) set.add(row.game_date.slice(0, 6))
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [teamScheduleQuery.data?.rows])
+
+  const filteredScheduleRows = useMemo(() => {
+    const rows = teamScheduleQuery.data?.rows ?? []
+    if (selectedMonth === "all") return rows
+    return rows.filter((row) => row.game_date?.startsWith(selectedMonth))
+  }, [teamScheduleQuery.data?.rows, selectedMonth])
+
+  useEffect(() => {
+    if (selectedMonth === "all") return
+    if (!availableMonths.includes(selectedMonth)) {
+      setSelectedMonth("all")
+    }
+  }, [availableMonths, selectedMonth])
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {/* Breadcrumb */}
         <nav className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Link href="/" className="hover:text-foreground transition-colors">홈</Link>
+          <Link href="/" className="transition-colors hover:text-foreground">
+            {tr("nav.home", lang)}
+          </Link>
           <span>/</span>
-          <span className="text-foreground">팀</span>
+          <span className="text-foreground">{tr("nav.teams", lang)}</span>
         </nav>
 
-        {/* Team Selector + Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg" style={{ backgroundColor: team.color }} />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{team.name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {team.wins}승 {team.losses}패 {team.draws}무 (승률 {team.pct})
+        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{selectedTeam || "팀"}</h1>
+            <p className="text-xs text-muted-foreground">
+              요청 시즌 {requestedSeason} / 반영 시즌 {effectiveSeason || "-"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={requestedSeason} onValueChange={setRequestedSeason}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+              </SelectContent>
+            </Select>
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+          </div>
+        </div>
+
+        {standingsQuery.isLoading ? (
+          <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">순위 로딩 중...</div>
+        ) : standingsQuery.isError ? (
+          <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+            순위를 불러오지 못했습니다.
+          </div>
+        ) : (
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-lg border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">{tr("team.rank", lang)}</p>
+              <p className="text-2xl font-mono font-bold text-foreground">{selectedStanding?.rank ?? "-"}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">{tr("team.winPct", lang)}</p>
+              <p className="text-2xl font-mono font-bold text-foreground">
+                {selectedStanding ? formatPct(selectedStanding.win_pct) : "-"}
               </p>
             </div>
+            <div className="rounded-lg border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">GB</p>
+              <p className="text-2xl font-mono font-bold text-foreground">{selectedStanding?.gb ?? "-"}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">{tr("team.streak", lang)}</p>
+              <p className="text-2xl font-mono font-bold text-foreground">{selectedStanding?.streak ?? "-"}</p>
+            </div>
           </div>
-          <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {teams.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  <div className="flex items-center gap-2">
-                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color }} />
-                    {t.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        )}
 
-        {/* Team Summary Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-lg border border-border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">순위</p>
-            <p className="text-2xl font-bold font-mono text-foreground">
-              {teams.findIndex((t) => t.id === selectedTeam) + 1}위
-            </p>
-          </div>
-          <div className="rounded-lg border border-border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">승률</p>
-            <p className="text-2xl font-bold font-mono text-foreground">{team.pct}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">게임차</p>
-            <p className="text-2xl font-bold font-mono text-foreground">{team.gb}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-card px-4 py-3">
-            <p className="text-xs text-muted-foreground">최근 연속</p>
-            <p className={`text-2xl font-bold font-mono ${team.streak.startsWith("W") ? "text-primary" : "text-kbo-danger"}`}>
-              {team.streak}
-            </p>
-          </div>
-        </div>
-
-        {/* Tabs */}
         <Tabs defaultValue="roster">
           <TabsList className="bg-secondary">
             <TabsTrigger value="roster" className="gap-1.5">
               <Users className="h-3.5 w-3.5" />
-              선수 순위
+              {tr("team.roster", lang)}
             </TabsTrigger>
             <TabsTrigger value="schedule" className="gap-1.5">
               <CalendarDays className="h-3.5 w-3.5" />
-              일정/결과
+              {tr("team.schedule", lang)}
             </TabsTrigger>
             <TabsTrigger value="h2h" className="gap-1.5">
               <Swords className="h-3.5 w-3.5" />
-              상대전적
+              {tr("team.h2h", lang)}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="roster" className="mt-4">
-            <div className="grid gap-4 lg:grid-cols-2">
-              {/* Team Hitters */}
-              <div className="rounded-lg border border-border bg-card">
-                <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">주요 타자</h3>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-xs text-muted-foreground">선수</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">AVG</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">HR</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">RBI</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">OPS</TableHead>
-                      <TableHead className="text-center text-xs font-semibold text-primary">WAR</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(teamHitters.length > 0 ? teamHitters : topHitters.slice(0, 3)).map((h) => (
-                      <TableRow key={h.id} className="border-border hover:bg-secondary/50">
-                        <TableCell>
-                          <Link href={`/player/${h.id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                            {h.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{h.stats.AVG}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-kbo-highlight">{h.stats.HR}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{h.stats.RBI}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{h.stats.OPS}</TableCell>
-                        <TableCell className="text-center text-sm font-mono font-bold text-primary">{h.stats.WAR}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+            {teamDetailQuery.isLoading ? (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">팀 리더보드 로딩 중...</div>
+            ) : teamDetailQuery.isError ? (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+                팀 리더보드를 불러오지 못했습니다.
               </div>
-
-              {/* Team Pitchers */}
-              <div className="rounded-lg border border-border bg-card">
-                <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-                  <Trophy className="h-4 w-4 text-chart-2" />
-                  <h3 className="text-sm font-semibold text-foreground">주요 투수</h3>
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-xs text-muted-foreground">선수</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">ERA</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">W-L</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">SO</TableHead>
-                      <TableHead className="text-center text-xs text-muted-foreground">WHIP</TableHead>
-                      <TableHead className="text-center text-xs font-semibold text-primary">WAR</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(teamPitchers.length > 0 ? teamPitchers : topPitchers.slice(0, 3)).map((p) => (
-                      <TableRow key={p.id} className="border-border hover:bg-secondary/50">
-                        <TableCell>
-                          <Link href={`/player/${p.id}`} className="text-sm font-medium text-foreground hover:text-primary transition-colors">
-                            {p.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{p.stats.ERA}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{p.stats.W}-{p.stats.L}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-kbo-highlight">{p.stats.SO}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{p.stats.WHIP}</TableCell>
-                        <TableCell className="text-center text-sm font-mono font-bold text-primary">{p.stats.WAR}</TableCell>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-lg border border-border bg-card">
+                  <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">{tr("team.opsLeaders", lang)}</h3>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs">{tr("players.player", lang)}</TableHead>
+                        <TableHead className="text-center text-xs">PA</TableHead>
+                        <TableHead className="text-center text-xs">OPS</TableHead>
+                        <TableHead className="text-center text-xs">HR</TableHead>
+                        <TableHead className="text-center text-xs">RBI</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {(teamDetailQuery.data?.leaders.ops_top10 ?? []).map((row, idx) => (
+                        <TableRow key={`${row.player_name}-${idx}`} className="border-border">
+                          <TableCell className="text-sm">{row.player_name}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.PA}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{Number(row.OPS || 0).toFixed(3)}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.HR}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.RBI}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="rounded-lg border border-border bg-card">
+                  <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+                    <Trophy className="h-4 w-4 text-chart-2" />
+                    <h3 className="text-sm font-semibold text-foreground">홈런 리더</h3>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs">선수</TableHead>
+                        <TableHead className="text-center text-xs">PA</TableHead>
+                        <TableHead className="text-center text-xs">HR</TableHead>
+                        <TableHead className="text-center text-xs">RBI</TableHead>
+                        <TableHead className="text-center text-xs">OPS</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(teamDetailQuery.data?.leaders.hr_top10 ?? []).map((row, idx) => (
+                        <TableRow key={`${row.player_name}-${idx}`} className="border-border">
+                          <TableCell className="text-sm">{row.player_name}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.PA}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.HR}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.RBI}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{Number(row.OPS || 0).toFixed(3)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            </div>
+            )}
           </TabsContent>
 
           <TabsContent value="schedule" className="mt-4">
-            <div className="rounded-lg border border-border bg-card">
-              <div className="border-b border-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-foreground">7월 일정 및 결과</h3>
+            {teamScheduleQuery.isLoading ? (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">{tr("team.scheduleLoading", lang)}</div>
+            ) : teamScheduleQuery.isError ? (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+                {tr("team.scheduleError", lang)}
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent border-border">
-                    <TableHead className="text-xs text-muted-foreground">날짜</TableHead>
-                    <TableHead className="text-xs text-muted-foreground">상대</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">홈/원정</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">결과</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">스코어</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scheduleData.map((g, i) => (
-                    <TableRow key={i} className="border-border hover:bg-secondary/50">
-                      <TableCell className="text-sm font-mono text-foreground">{g.date}</TableCell>
-                      <TableCell className="text-sm text-foreground">{g.opp}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                          {g.home ? "홈" : "원정"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {g.result === "-" ? (
-                          <Badge variant="secondary" className="text-xs bg-secondary text-muted-foreground">예정</Badge>
-                        ) : g.result === "W" ? (
-                          <Badge className="text-xs bg-primary/20 text-primary border-0">승</Badge>
-                        ) : (
-                          <Badge className="text-xs bg-kbo-danger/20 text-kbo-danger border-0">패</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center text-sm font-mono text-foreground">{g.score}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            ) : (
+              <ScheduleCalendar
+                rows={teamScheduleQuery.data?.rows ?? []}
+                availableMonths={availableMonths}
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+                lang={lang}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="h2h" className="mt-4">
-            <div className="rounded-lg border border-border bg-card">
-              <div className="border-b border-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-foreground">상대 팀별 전적</h3>
+            {teamDetailQuery.isLoading ? (
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">상대 전적 로딩 중...</div>
+            ) : teamDetailQuery.isError ? (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+                상대 전적을 불러오지 못했습니다.
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent border-border">
-                    <TableHead className="text-xs text-muted-foreground">상대</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">승</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">패</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">무</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">득점</TableHead>
-                    <TableHead className="text-center text-xs text-muted-foreground">실점</TableHead>
-                    <TableHead className="text-center text-xs font-semibold text-foreground">승률</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {h2hData.map((h, i) => {
-                    const total = h.w + h.l + h.d
-                    const pct = total > 0 ? (h.w / (h.w + h.l)).toFixed(3) : "-"
-                    return (
-                      <TableRow key={i} className="border-border hover:bg-secondary/50">
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: teams.find(t => t.shortName === h.opp)?.color || "#666" }} />
-                            <span className="text-sm font-medium text-foreground">{h.opp}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center text-sm font-mono text-primary">{h.w}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-kbo-danger">{h.l}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-muted-foreground">{h.d}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{h.rs}</TableCell>
-                        <TableCell className="text-center text-sm font-mono text-foreground">{h.ra}</TableCell>
-                        <TableCell className="text-center text-sm font-mono font-semibold text-foreground">{pct}</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="text-xs">상대</TableHead>
+                      <TableHead className="text-center text-xs">승</TableHead>
+                      <TableHead className="text-center text-xs">패</TableHead>
+                      <TableHead className="text-center text-xs">무</TableHead>
+                      <TableHead className="text-center text-xs">득점</TableHead>
+                      <TableHead className="text-center text-xs">실점</TableHead>
+                      <TableHead className="text-center text-xs">승률</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(teamDetailQuery.data?.h2h ?? []).map((row) => {
+                      const total = row.wins + row.losses
+                      const pct = total > 0 ? (row.wins / total).toFixed(3) : "-"
+                      return (
+                        <TableRow key={row.opp_team} className="border-border">
+                          <TableCell className="text-sm">{row.opp_team}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.wins}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.losses}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.draws}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.runs_for}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{row.runs_against}</TableCell>
+                          <TableCell className="text-center text-sm font-mono">{pct}</TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────
+//  Schedule Calendar Component
+// ──────────────────────────────────────────
+
+type ScheduleRow = TeamScheduleResponse["rows"][number]
+
+const DAY_LABELS_KO = ["일", "월", "화", "수", "목", "금", "토"]
+const DAY_LABELS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+function ScheduleCalendar({
+  rows,
+  availableMonths,
+  selectedMonth,
+  onMonthChange,
+  lang,
+}: {
+  rows: ScheduleRow[]
+  availableMonths: string[]
+  selectedMonth: string
+  onMonthChange: (m: string) => void
+  lang: import("@/components/lang-context").Lang
+}) {
+  // 기본 월 = 가장 최근 월
+  const activeMonth = selectedMonth !== "all" ? selectedMonth : availableMonths[0] ?? ""
+
+  // 해당 월에 해당하는 경기 목록
+  const monthRows = rows.filter((r) => r.game_date?.startsWith(activeMonth))
+
+  // game_date → row 맵 (같은 날 더블헤더 대비 배열)
+  const dayMap = useMemo(() => {
+    const map = new Map<string, ScheduleRow[]>()
+    for (const row of monthRows) {
+      const day = row.game_date?.slice(6, 8) ?? ""
+      if (!map.has(day)) map.set(day, [])
+      map.get(day)!.push(row)
+    }
+    return map
+  }, [monthRows])
+
+  if (!activeMonth) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        {tr("team.noData", lang)}
+      </div>
+    )
+  }
+
+  const year = parseInt(activeMonth.slice(0, 4), 10)
+  const month = parseInt(activeMonth.slice(4, 6), 10)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const firstDow = new Date(year, month - 1, 1).getDay() // 0=일
+
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      {/* 월 탭 네비게이션 */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-border px-3 py-2">
+        {availableMonths.map((m) => (
+          <button
+            key={m}
+            onClick={() => onMonthChange(m)}
+            className={`shrink-0 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              m === activeMonth
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            }`}
+          >
+            {lang === "en" ? `${m.slice(4, 6)}M` : `${m.slice(4, 6)}월`}
+          </button>
+        ))}
+      </div>
+
+      {/* 캘린더 헤더 (요일) */}
+      <div className="grid grid-cols-7 border-b border-border">
+        {(lang === "en" ? DAY_LABELS_EN : DAY_LABELS_KO).map((d, i) => (
+          <div
+            key={d}
+            className={`py-2 text-center text-xs font-medium ${
+              i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-muted-foreground"
+            }`}
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* 캘린더 날짜 그리드 */}
+      <div className="grid grid-cols-7">
+        {/* 첫 날 이전 빈 셀 */}
+        {Array.from({ length: firstDow }).map((_, i) => (
+          <div key={`empty-${i}`} className="min-h-[80px] border-b border-r border-border/30 p-1" />
+        ))}
+
+        {/* 날짜 셀 */}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+          const dayStr = String(day).padStart(2, "0")
+          const games = dayMap.get(dayStr) ?? []
+          const dow = (firstDow + day - 1) % 7
+
+          return (
+            <div
+              key={day}
+              className={`min-h-[80px] border-b border-r border-border/30 p-1.5 ${
+                games.length === 0 ? "bg-transparent" : ""
+              }`}
+            >
+              {/* 날짜 숫자 */}
+              <p
+                className={`mb-1 text-xs font-mono font-medium ${
+                  dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-muted-foreground"
+                }`}
+              >
+                {day}
+              </p>
+
+              {/* 경기 정보 */}
+              {games.map((game, gi) => {
+                const hasResult = game.result !== null
+                const bgClass = hasResult
+                  ? game.result === "W"
+                    ? "bg-primary/10 border border-primary/30"
+                    : game.result === "L"
+                    ? "bg-red-500/10 border border-red-500/20"
+                    : "bg-secondary border border-border"
+                  : "border border-dashed border-border"
+
+                return (
+                  <div key={gi} className={`mb-1 rounded p-1 ${bgClass}`}>
+                    {/* 상대팀 + 홈/원정 */}
+                    <p className="truncate text-[10px] font-medium text-foreground leading-tight">
+                      {game.is_home ? "🏠" : "✈"} {game.opp_team}
+                    </p>
+                    {/* 결과 */}
+                    {hasResult ? (
+                      <p
+                        className={`text-[10px] font-mono font-bold leading-tight ${
+                          game.result === "W"
+                            ? "text-primary"
+                            : game.result === "L"
+                            ? "text-red-400"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {game.result === "W" ? tr("team.win", lang) : game.result === "L" ? tr("team.loss", lang) : tr("team.draw", lang)}{" "}
+                        {game.team_score}-{game.opp_score}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        {game.game_time ? game.game_time.slice(0, 5) : tr("team.scheduled", lang)}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
