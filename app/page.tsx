@@ -71,8 +71,19 @@ type HomeSummaryResponse = {
   }
 }
 
+function getDefaultSeasonByKstDate() {
+  const seasonStart = "2026-03-28"
+  const todayKst = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+  return todayKst >= seasonStart ? 2026 : 2025
+}
+
 export default async function HomePage() {
-  const season = 2026
+  const season = getDefaultSeasonByKstDate()
   const now = new Date()
   const yyyymmdd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`
 
@@ -100,7 +111,7 @@ export default async function HomePage() {
             <div>
               <div className="mb-2 flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
-                <span className="text-xs font-mono font-medium uppercase tracking-wider text-primary">2026 KBO Regular Season</span>
+                <span className="text-xs font-mono font-medium uppercase tracking-wider text-primary">{season} KBO Regular Season</span>
               </div>
               <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground md:text-3xl">KBO Sabermetrics and AI Analysis</h1>
               <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
