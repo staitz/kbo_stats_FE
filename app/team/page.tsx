@@ -109,6 +109,18 @@ function getDefaultSeasonByKstDate() {
   return todayKst >= seasonStart ? "2026" : "2025"
 }
 
+/** "N연승" → "NW", "N연패" → "NL" 형태로 영어 변환 */
+function localizeStreak(streak: string | null | undefined, lang: "ko" | "en"): string {
+  if (!streak) return "-"
+  if (lang === "ko") return streak
+  const m = streak.match(/^(\d+)(연승|연패|연무)$/)
+  if (m) {
+    const type = m[2] === "연승" ? "W" : m[2] === "연패" ? "L" : "D"
+    return `${m[1]}${type}`
+  }
+  return streak
+}
+
 export default function TeamPage() {
   const { lang } = useLang()
   const [requestedSeason, setRequestedSeason] = useState(getDefaultSeasonByKstDate)
@@ -128,12 +140,15 @@ export default function TeamPage() {
     ? standingsTeams.map((row) => row.team)
     : [...TEAM_OPTIONS]
 
+  // standings 로딩 완료 후 1위 팀으로 초기화 (사용자가 직접 바꾸지 않은 경우)
   useEffect(() => {
-    if (!teams.length) return
-    if (!selectedTeam || !teams.includes(selectedTeam)) {
-      setSelectedTeam(teams[0])
+    if (!standingsTeams.length) return
+    // standings가 있으면 1위 팀(첫 번째)으로 초기화, 단 사용자가 이미 선택한 팀이 있으면 유지
+    const topTeam = standingsTeams[0]?.team
+    if (topTeam && (!selectedTeam || !standingsTeams.map(r => r.team).includes(selectedTeam))) {
+      setSelectedTeam(topTeam)
     }
-  }, [teams, selectedTeam])
+  }, [standingsTeams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedStanding = useMemo(
     () => standingsTeams.find((t) => t.team === selectedTeam) ?? null,
@@ -194,7 +209,9 @@ export default function TeamPage() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{selectedTeam || "팀"}</h1>
             <p className="text-xs text-muted-foreground">
-              요청 시즌 {requestedSeason} / 반영 시즌 {effectiveSeason || "-"}
+              {lang === "en"
+                ? `Season ${requestedSeason} / Effective ${effectiveSeason || "-"}`
+                : `요청 시즌 ${requestedSeason} / 반영 시즌 ${effectiveSeason || "-"}`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -223,10 +240,10 @@ export default function TeamPage() {
         </div>
 
         {standingsQuery.isLoading ? (
-          <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">순위 로딩 중...</div>
+          <div className="mb-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">{tr("common.loading", lang)}</div>
         ) : standingsQuery.isError ? (
           <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-            순위를 불러오지 못했습니다.
+            {tr("standings.loadError", lang)}
           </div>
         ) : (
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -246,7 +263,7 @@ export default function TeamPage() {
             </div>
             <div className="rounded-lg border border-border bg-card px-4 py-3">
               <p className="text-xs text-muted-foreground">{tr("team.streak", lang)}</p>
-              <p className="text-2xl font-mono font-bold text-foreground">{selectedStanding?.streak ?? "-"}</p>
+              <p className="text-2xl font-mono font-bold text-foreground">{localizeStreak(selectedStanding?.streak, lang)}</p>
             </div>
           </div>
         )}
@@ -269,10 +286,10 @@ export default function TeamPage() {
 
           <TabsContent value="roster" className="mt-4">
             {teamDetailQuery.isLoading ? (
-              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">팀 리더보드 로딩 중...</div>
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">{tr("common.loading", lang)}</div>
             ) : teamDetailQuery.isError ? (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-                팀 리더보드를 불러오지 못했습니다.
+                {tr("roster.loadError", lang)}
               </div>
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
@@ -307,12 +324,12 @@ export default function TeamPage() {
                 <div className="rounded-lg border border-border bg-card">
                   <div className="flex items-center gap-2 border-b border-border px-4 py-3">
                     <Trophy className="h-4 w-4 text-chart-2" />
-                    <h3 className="text-sm font-semibold text-foreground">홈런 리더</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{tr("team.hrLeaders", lang)}</h3>
                   </div>
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-xs">선수</TableHead>
+                        <TableHead className="text-xs">{tr("players.player", lang)}</TableHead>
                         <TableHead className="text-center text-xs">PA</TableHead>
                         <TableHead className="text-center text-xs">HR</TableHead>
                         <TableHead className="text-center text-xs">RBI</TableHead>
@@ -356,23 +373,23 @@ export default function TeamPage() {
 
           <TabsContent value="h2h" className="mt-4">
             {teamDetailQuery.isLoading ? (
-              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">상대 전적 로딩 중...</div>
+              <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">{tr("common.loading", lang)}</div>
             ) : teamDetailQuery.isError ? (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-                상대 전적을 불러오지 못했습니다.
+                {tr("h2h.loadError", lang)}
               </div>
             ) : (
               <div className="rounded-lg border border-border bg-card">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-xs">상대</TableHead>
-                      <TableHead className="text-center text-xs">승</TableHead>
-                      <TableHead className="text-center text-xs">패</TableHead>
-                      <TableHead className="text-center text-xs">무</TableHead>
-                      <TableHead className="text-center text-xs">득점</TableHead>
-                      <TableHead className="text-center text-xs">실점</TableHead>
-                      <TableHead className="text-center text-xs">승률</TableHead>
+                      <TableHead className="text-xs">{tr("team.opp", lang)}</TableHead>
+                      <TableHead className="text-center text-xs">{tr("team.wins", lang)}</TableHead>
+                      <TableHead className="text-center text-xs">{tr("team.losses", lang)}</TableHead>
+                      <TableHead className="text-center text-xs">{tr("team.draws", lang)}</TableHead>
+                      <TableHead className="text-center text-xs">{tr("team.runsFor", lang)}</TableHead>
+                      <TableHead className="text-center text-xs">{tr("team.runsAgainst", lang)}</TableHead>
+                      <TableHead className="text-center text-xs">{tr("team.h2hPct", lang)}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
