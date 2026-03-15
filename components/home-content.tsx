@@ -40,6 +40,13 @@ type HomeSummaryResponse = {
     era_top5?: { player_name: string, team: string, ERA?: number | string, PA?: number }[]
     war_top5?: { player_name: string, team: string, WAR?: number | string }[]
   }
+  totals?: {
+    players: number
+    teams: number
+    total_hr: number
+    total_pa: number
+    total_games: number
+  }
 }
 
 export function HomeContent({
@@ -73,11 +80,11 @@ export function HomeContent({
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-secondary px-4 py-2 text-center">
                 <p className="text-xs text-muted-foreground">{tr("home.games", lang)}</p>
-                <p className="text-xl font-mono font-bold text-foreground">460</p>
+                <p className="text-xl font-mono font-bold text-foreground">{summary.totals?.total_games ?? 0}</p>
               </div>
               <div className="rounded-lg bg-secondary px-4 py-2 text-center">
                 <p className="text-xs text-muted-foreground">{tr("home.players", lang)}</p>
-                <p className="text-xl font-mono font-bold text-foreground">520</p>
+                <p className="text-xl font-mono font-bold text-foreground">{summary.totals?.players ?? 0}</p>
               </div>
             </div>
           </div>

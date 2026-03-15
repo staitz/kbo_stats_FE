@@ -69,6 +69,13 @@ type HomeSummaryResponse = {
       WAR?: number | string
     }[]
   }
+  totals?: {
+    players: number
+    teams: number
+    total_hr: number
+    total_pa: number
+    total_games: number
+  }
 }
 
 function getDefaultSeasonByKstDate() {
@@ -89,7 +96,7 @@ export default async function HomePage() {
 
   let standings: StandingsResponse = { as_of_date: null, rows: [] }
   let games: GamesResponse = { date: null, rows: [] }
-  let summary: HomeSummaryResponse = { leaderboards: { avg_top5: [], ops_top5: [], hr_top5: [], era_top5: [], war_top5: [] } }
+  let summary: HomeSummaryResponse = { leaderboards: { avg_top5: [], ops_top5: [], hr_top5: [], era_top5: [], war_top5: [] }, totals: { players: 0, teams: 0, total_hr: 0, total_pa: 0, total_games: 0 } }
 
   try {
     ;[standings, games, summary] = await Promise.all([
