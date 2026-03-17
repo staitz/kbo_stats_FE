@@ -18,22 +18,22 @@ export function PlayerStatsTable({ seasons }: { seasons: HitterSeason[] }) {
             <TableRow className="hover:bg-transparent border-border">
               <TableHead className="text-xs text-muted-foreground sticky left-0 bg-card z-10">시즌</TableHead>
               <TableHead className="text-xs text-muted-foreground sticky left-12 bg-card z-10">팀</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">G</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">경기</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">타석</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">타수</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">타율</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">OPS</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">안타</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">2B</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">3B</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">HR</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">홈런</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">타점</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">출루</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">장타</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">타수</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">2루타</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">3루타</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">도루</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">볼넷</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">삼진</TableHead>
-              <TableHead className="text-center text-xs font-semibold text-foreground">타율</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">출루</TableHead>
-              <TableHead className="text-center text-xs text-muted-foreground">장타</TableHead>
-              <TableHead className="text-center text-xs font-semibold text-foreground">OPS</TableHead>
-              <TableHead className="text-center text-xs font-semibold text-primary">WAR</TableHead>
+              <TableHead className="text-center text-xs text-muted-foreground">WAR</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">wRC+</TableHead>
               <TableHead className="text-center text-xs text-muted-foreground">BABIP</TableHead>
             </TableRow>
@@ -41,26 +41,26 @@ export function PlayerStatsTable({ seasons }: { seasons: HitterSeason[] }) {
           <TableBody>
             {seasons.map((s, idx) => (
               <TableRow key={`${s.season}-${s.team}-${idx}`} className="border-border hover:bg-secondary/50 transition-colors">
-                <TableCell className="text-sm font-mono font-medium text-foreground sticky left-0 bg-card z-10">{s.season}</TableCell>
+                <TableCell className="text-sm font-mono text-foreground sticky left-0 bg-card z-10">{s.season}</TableCell>
                 <TableCell className="text-sm text-muted-foreground sticky left-12 bg-card z-10">{formatTeamName(s.team, lang)}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.G}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.PA}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-foreground">{s.AB}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.AVG}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.OPS}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.H}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-muted-foreground">{s["2B"]}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-muted-foreground">{s["3B"]}</TableCell>
-                <TableCell className="text-center text-sm font-mono font-semibold text-kbo-highlight">{s.HR}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.HR}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.RBI}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-foreground">{s.SB}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-muted-foreground">{s.BB}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-muted-foreground">{s.SO}</TableCell>
-                <TableCell className="text-center text-sm font-mono font-semibold text-foreground">{s.AVG}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.OBP}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.SLG}</TableCell>
-                <TableCell className="text-center text-sm font-mono font-semibold text-foreground">{s.OPS}</TableCell>
-                <TableCell className="text-center text-sm font-mono font-bold text-primary">{s.WAR}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.AB}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s["2B"]}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s["3B"]}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.SB}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.BB}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.SO}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.WAR}</TableCell>
                 <TableCell className="text-center text-sm font-mono text-foreground">{s.wRC}</TableCell>
-                <TableCell className="text-center text-sm font-mono text-muted-foreground">{s.BABIP}</TableCell>
+                <TableCell className="text-center text-sm font-mono text-foreground">{s.BABIP}</TableCell>
               </TableRow>
             ))}
           </TableBody>
