@@ -63,55 +63,42 @@ export function HomeContent({
   const { lang } = useLang()
 
   return (
-    <>
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        <section className="mb-8 rounded-xl border border-border bg-card px-6 py-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                <span className="text-xs font-mono font-medium uppercase tracking-wider text-primary">{season} {tr("home.season", lang)}</span>
-              </div>
-              <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground md:text-3xl">{tr("home.title", lang)}</h1>
-              <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
-                {tr("home.subtitle", lang)}
-              </p>
+    <main className="mx-auto max-w-7xl px-4 py-6">
+      <section className="mb-8 rounded-xl border border-border bg-card px-6 py-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              <span className="text-xs font-mono font-medium uppercase tracking-wider text-primary">{season} {tr("home.season", lang)}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-secondary px-4 py-2 text-center">
-                <p className="text-xs text-muted-foreground">{tr("home.games", lang)}</p>
-                <p className="text-xl font-mono font-bold text-foreground">{summary.totals?.total_games ?? 0}</p>
-              </div>
-              <div className="rounded-lg bg-secondary px-4 py-2 text-center">
-                <p className="text-xs text-muted-foreground">{tr("home.players", lang)}</p>
-                <p className="text-xl font-mono font-bold text-foreground">{summary.totals?.players ?? 0}</p>
-              </div>
+            <h1 className="text-balance text-2xl font-bold tracking-tight text-foreground md:text-3xl">{tr("home.title", lang)}</h1>
+            <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground">
+              {tr("home.subtitle", lang)}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-secondary px-4 py-2 text-center">
+              <p className="text-xs text-muted-foreground">{tr("home.games", lang)}</p>
+              <p className="text-xl font-mono font-bold text-foreground">{summary.totals?.total_games ?? 0}</p>
+            </div>
+            <div className="rounded-lg bg-secondary px-4 py-2 text-center">
+              <p className="text-xs text-muted-foreground">{tr("home.players", lang)}</p>
+              <p className="text-xl font-mono font-bold text-foreground">{summary.totals?.players ?? 0}</p>
             </div>
           </div>
-        </section>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="flex flex-col gap-6 lg:col-span-2">
-            <LeaderboardMini summary={summary} />
-          </div>
-
-          <div className="flex flex-col gap-6 lg:col-span-1">
-            <StandingsTable rows={standings.rows} asOfDate={standings.as_of_date} />
-            <RecentGames rows={games.rows} date={games.date} />
-          </div>
         </div>
-      </main>
+      </section>
 
-      <footer className="mt-12 border-t border-border bg-card">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row">
-          <p className="text-xs text-muted-foreground">{tr("home.footer", lang)}</p>
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <span className="cursor-pointer transition-colors hover:text-foreground">{tr("home.glossary", lang)}</span>
-            <span className="cursor-pointer transition-colors hover:text-foreground">{tr("home.dataSources", lang)}</span>
-            <span className="cursor-pointer transition-colors hover:text-foreground">{tr("home.reportIssue", lang)}</span>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <LeaderboardMini summary={summary} />
         </div>
-      </footer>
-    </>
+
+        <div className="flex flex-col gap-6 lg:col-span-1">
+          <StandingsTable rows={standings.rows} asOfDate={standings.as_of_date} />
+          <RecentGames rows={games.rows} date={games.date} />
+        </div>
+      </div>
+    </main>
   )
 }
