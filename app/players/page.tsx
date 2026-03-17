@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { fetchJson } from "@/lib/api"
-import { topPitchers } from "@/lib/mock-data"
 import { useLang, tr } from "@/components/lang-context"
 import { formatPlayerName, formatTeamName } from "@/lib/romanize"
 
@@ -49,11 +48,15 @@ type LeaderboardResponse = {
   rows: HitterRow[]
 }
 
-const HITTER_SORT_FIELDS = ["OPS", "AVG", "HR", "RBI", "OBP", "SLG", "H"] as const
-const PITCHER_SORT_FIELDS = ["ERA", "W", "SO", "WAR", "WHIP", "K9", "FIP", "SV"] as const
-const TEAM_OPTIONS = ["KIA", "LG", "KT", "NC", "SSG", "\uB450\uC0B0", "\uB86F\uB370", "\uC0BC\uC131", "\uD0A4\uC6C0", "\uD55C\uD654"] as const
+const HITTER_SORT_FIELDS = ["AVG", "OPS", "H", "HR", "RBI", "OBP", "SLG"] as const
+const TEAM_OPTIONS = ["KIA", "LG", "KT", "NC", "SSG", "두산", "롯데", "삼성", "키움", "한화"] as const
+
+const FIELD_LABEL: Record<string, string> = {
+  AVG: "타율", OPS: "OPS", H: "안타", HR: "홈런", RBI: "타점", OBP: "출루율", SLG: "장타율",
+}
 
 const DECIMAL_METRICS = new Set(["AVG", "OBP", "SLG", "OPS"])
+const PLAYER_LIST_LIMIT = 50
 
 function formatMetric(value: number, metric: string) {
   if (DECIMAL_METRICS.has(metric)) return Number(value || 0).toFixed(3)
@@ -77,8 +80,7 @@ export default function PlayersPage() {
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("all")
   const [season, setSeason] = useState(getDefaultSeasonByKstDate)
   const [viewMode, setViewMode] = useState<ViewMode>("table")
-  const [hitterSort, setHitterSort] = useState<string>("OPS")
-  const [pitcherSort, setPitcherSort] = useState<string>("ERA")
+  const [hitterSort, setHitterSort] = useState<string>("AVG")
   const [showRegulation, setShowRegulation] = useState(true)
 
   const { data: leaderboardData, isLoading, isError, error } = useQuery<LeaderboardResponse>({
@@ -89,7 +91,7 @@ export default function PlayersPage() {
         team: teamFilter !== "all" ? teamFilter : undefined,
         metric: hitterSort,
         min_pa: showRegulation ? undefined : 0,
-        limit: 200,
+        limit: PLAYER_LIST_LIMIT,
       }),
     placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
@@ -101,21 +103,6 @@ export default function PlayersPage() {
     if (!search.trim()) return rows
     return rows.filter((row) => row.player_name.includes(search) || row.team.includes(search))
   }, [leaderboardData, search])
-
-  const filteredPitchers = useMemo(() => {
-    const filtered = topPitchers.filter((p) => {
-      const matchSearch = p.name.includes(search) || p.team.includes(search)
-      const matchTeam = teamFilter === "all" || p.team === teamFilter
-      return matchSearch && matchTeam
-    })
-
-    return [...filtered].sort((a, b) => {
-      const aVal = parseFloat(String(a.stats[pitcherSort as keyof typeof a.stats])) || 0
-      const bVal = parseFloat(String(b.stats[pitcherSort as keyof typeof b.stats])) || 0
-      if (pitcherSort === "ERA" || pitcherSort === "WHIP" || pitcherSort === "FIP") return aVal - bVal
-      return bVal - aVal
-    })
-  }, [search, teamFilter, pitcherSort])
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,7 +191,6 @@ export default function PlayersPage() {
         <Tabs defaultValue="hitters">
           <TabsList className="bg-secondary">
             <TabsTrigger value="hitters">{tr("players.hitters", lang)}</TabsTrigger>
-            <TabsTrigger value="pitchers">{tr("players.pitchers", lang)}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="hitters" className="mt-4">
@@ -220,7 +206,7 @@ export default function PlayersPage() {
                       : "bg-secondary text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {field}
+                  {FIELD_LABEL[field] ?? field}
                 </button>
               ))}
             </div>
@@ -243,7 +229,7 @@ export default function PlayersPage() {
                   >
                     <p className="text-sm font-semibold text-foreground">{formatPlayerName(h.player_name, lang)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{formatTeamName(h.team, lang)}</p>
-                    <p className="mt-3 text-xs text-muted-foreground">{hitterSort}</p>
+                    <p className="mt-3 text-xs text-muted-foreground">{FIELD_LABEL[hitterSort] ?? hitterSort}</p>
                     <p className="text-lg font-bold text-primary">
                       {formatMetric(Number(h[hitterSort as keyof HitterRow] ?? 0), hitterSort)}
                     </p>
@@ -253,45 +239,6 @@ export default function PlayersPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="pitchers" className="mt-4">
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              {PITCHER_SORT_FIELDS.map((field) => (
-                <button
-                  key={field}
-                  onClick={() => setPitcherSort(field)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                    pitcherSort === field
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {field}
-                </button>
-              ))}
-            </div>
-
-            <div className="rounded-lg border border-border bg-card overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-xs">{tr("players.player", lang)}</TableHead>
-                    <TableHead className="text-xs">{tr("players.team", lang)}</TableHead>
-                    <TableHead className="text-center text-xs">{pitcherSort}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPitchers.map((p) => (
-                    <TableRow key={p.id} className="border-border">
-                      <TableCell className="text-sm font-medium">{formatPlayerName(p.name, lang)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{formatTeamName(p.team, lang)}</TableCell>
-                      <TableCell className="text-center text-sm">{String(p.stats[pitcherSort as keyof typeof p.stats])}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
     </div>
@@ -301,16 +248,16 @@ export default function PlayersPage() {
 function HitterTable({ hitters, sortField, season, lang }: { hitters: HitterRow[]; sortField: string; season: string; lang: import("@/components/lang-context").Lang }) {
   // 모든 stat 컬럼 정의 (고정 앞 컬럼 제외)
   const ALL_STAT_COLS: { key: keyof HitterRow; label: string; decimal?: boolean }[] = [
-    { key: "AVG", label: "AVG", decimal: true },
-    { key: "HR", label: "HR" },
-    { key: "RBI", label: "RBI" },
-    { key: "OBP", label: "OBP", decimal: true },
-    { key: "SLG", label: "SLG", decimal: true },
+    { key: "AVG", label: "타율", decimal: true },
+    { key: "HR", label: "홈런" },
+    { key: "RBI", label: "타점" },
+    { key: "OBP", label: "출루율", decimal: true },
+    { key: "SLG", label: "장타율", decimal: true },
     { key: "OPS", label: "OPS", decimal: true },
-    { key: "H", label: "H" },
-    { key: "games", label: "G" },
-    { key: "PA", label: "PA" },
-    { key: "AB", label: "AB" },
+    { key: "H", label: "안타" },
+    { key: "games", label: "경기" },
+    { key: "PA", label: "타석" },
+    { key: "AB", label: "타수" },
   ]
 
   // 선택한 sortField를 맨 앞으로 이동
@@ -344,7 +291,7 @@ function HitterTable({ hitters, sortField, season, lang }: { hitters: HitterRow[
             <TableRow key={`${h.team}-${h.player_name}-${i}`} className="border-border">
               <TableCell className="text-center text-xs text-muted-foreground">{i + 1}</TableCell>
               <TableCell className="text-sm font-medium">
-                <Link href={`/player/${encodeURIComponent(h.player_id || h.player_name)}?season=${season}`} className="hover:text-primary">
+                <Link href={`/player/${encodeURIComponent(h.player_id || h.player_name)}?season=${season}`} className="hover:text-primary hover:underline underline-offset-2 transition-colors">
                   {formatPlayerName(h.player_name, lang)}
                 </Link>
               </TableCell>
