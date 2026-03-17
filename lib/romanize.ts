@@ -116,9 +116,17 @@ export function romanizeKorean(text: string): string {
   return result;
 }
 
+function compactForeignPlayerName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed.includes(" ")) return trimmed;
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  return parts[parts.length - 1] || trimmed;
+}
+
 export function formatPlayerName(name: string, lang: "ko" | "en"): string {
-  if (lang === "ko") return name;
-  return romanizeKorean(name);
+  const compactName = compactForeignPlayerName(name);
+  if (lang === "ko") return compactName;
+  return romanizeKorean(compactName);
 }
 
 export function formatTeamName(team: string, lang: "ko" | "en"): string {
