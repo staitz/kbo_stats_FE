@@ -35,6 +35,7 @@ export const viewport: Viewport = {
 }
 
 import { Providers } from "@/components/providers"
+import { SiteFooter } from "@/components/site-footer"
 
 export default function RootLayout({
   children,
@@ -46,6 +47,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <Providers>
           {children}
+          <SiteFooter />
         </Providers>
         <Analytics />
       </body>
