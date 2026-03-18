@@ -80,6 +80,8 @@ type TeamScheduleResponse = {
     game_time: string | null
     stadium: string | null
     status: string | null
+    status_category: "scheduled" | "cancelled" | "suspended" | "finished" | "unknown"
+    result_state: "played" | "not_played" | "missing_result"
     is_home: boolean
     opp_team: string
     result: "W" | "L" | "D" | null
@@ -556,13 +558,30 @@ function ScheduleCalendar({
               {/* 경기 정보 */}
               {games.map((game, gi) => {
                 const hasResult = game.result !== null
+                const sc = game.status_category ?? "unknown"
+
+                // Background color based on outcome or status
                 const bgClass = hasResult
                   ? game.result === "W"
                     ? "bg-primary/10 border border-primary/30"
                     : game.result === "L"
                     ? "bg-red-500/10 border border-red-500/20"
                     : "bg-secondary border border-border"
+                  : sc === "cancelled"
+                  ? "border border-dashed border-muted-foreground/30 opacity-60"
+                  : sc === "suspended"
+                  ? "border border-dashed border-amber-500/40 bg-amber-500/5"
                   : "border border-dashed border-border"
+
+                // Label to show when there is no result
+                const noResultLabel = () => {
+                  if (sc === "cancelled")      return tr("team.status.cancelled", lang)
+                  if (sc === "suspended")      return tr("team.status.suspended", lang)
+                  if (sc === "finished")       return tr("team.status.missingResult", lang)
+                  if (sc === "unknown")        return game.game_time ? game.game_time.slice(0, 5) : tr("team.status.unknown", lang)
+                  // scheduled
+                  return game.game_time ? game.game_time.slice(0, 5) : tr("team.scheduled", lang)
+                }
 
                 return (
                   <div key={gi} className={`mb-1 rounded p-1 ${bgClass}`}>
@@ -588,8 +607,14 @@ function ScheduleCalendar({
                         {game.team_score}-{game.opp_score}
                       </p>
                     ) : (
-                      <p className="text-[10px] text-muted-foreground leading-tight">
-                        {game.game_time ? game.game_time.slice(0, 5) : tr("team.scheduled", lang)}
+                      <p className={`text-[10px] leading-tight ${
+                        sc === "cancelled" || sc === "suspended"
+                          ? "text-muted-foreground/70"
+                          : sc === "finished"
+                          ? "text-amber-400"
+                          : "text-muted-foreground"
+                      }`}>
+                        {noResultLabel()}
                       </p>
                     )}
                   </div>
