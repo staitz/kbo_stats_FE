@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { TrendingUp, Trophy } from "lucide-react"
 import { useLang, tr } from "@/components/lang-context"
 import { formatPlayerName, formatTeamName } from "@/lib/romanize"
@@ -40,7 +41,7 @@ function LeaderCard({
 }: {
   title: string
   icon: React.ReactNode
-  items: { rank: number; name: string; team: string; value: string; sub?: string }[]
+  items: { rank: number; name: string; team: string; value: string; sub?: string; playerHref?: string }[]
   noDataText: string
 }) {
   return (
@@ -53,19 +54,35 @@ function LeaderCard({
         {items.length === 0 && (
           <div className="px-4 py-3 text-xs text-muted-foreground">{noDataText}</div>
         )}
-        {items.map((item) => (
-          <div key={`${title}-${item.rank}-${item.name}`} className="flex items-center gap-3 px-4 py-2.5">
-            <span className="w-5 text-center text-xs font-mono font-bold">{item.rank}</span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-medium text-foreground">{item.name}</span>
-                <span className="text-xs text-muted-foreground">{item.team}</span>
+        {items.map((item) => {
+          const inner = (
+            <div className="flex items-center gap-3 px-4 py-2.5 w-full">
+              <span className="w-5 text-center text-xs font-mono font-bold">{item.rank}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors">{item.name}</span>
+                  <span className="text-xs text-muted-foreground">{item.team}</span>
+                </div>
+                {item.sub && <p className="text-xs text-muted-foreground">{item.sub}</p>}
               </div>
-              {item.sub && <p className="text-xs text-muted-foreground">{item.sub}</p>}
+              <span className="text-sm font-mono font-bold text-primary">{item.value}</span>
             </div>
-            <span className="text-sm font-mono font-bold text-primary">{item.value}</span>
-          </div>
-        ))}
+          )
+
+          return item.playerHref ? (
+            <Link
+              key={`${title}-${item.rank}-${item.name}`}
+              href={item.playerHref}
+              className="block transition-colors hover:bg-secondary/60"
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={`${title}-${item.rank}-${item.name}`}>
+              {inner}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -80,6 +97,7 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     team: formatTeamName(p.team, lang),
     value: formatTo3(p.AVG),
     sub: `${p.H ?? "-"}안타 / ${p.PA ?? "-"}타석`,
+    playerHref: `/player/${encodeURIComponent(p.player_name)}`,
   }))
 
   const hrLeaders = (summary.leaderboards.hr_top5 ?? []).map((p, i) => ({
@@ -88,6 +106,7 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     team: formatTeamName(p.team, lang),
     value: String(p.HR ?? "-"),
     sub: `${p.RBI ?? "-"}타점 / OPS ${formatTo3(p.OPS)}`,
+    playerHref: `/player/${encodeURIComponent(p.player_name)}`,
   }))
 
   const eraLeaders = (summary.leaderboards.era_top5 ?? []).map((p, i) => ({
@@ -96,6 +115,7 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     team: formatTeamName(p.team, lang),
     value: String(p.ERA ?? "-"),
     sub: p.PA ? `${p.PA}IP` : undefined,
+    playerHref: `/player/${encodeURIComponent(p.player_name)}?player_type=pitcher`,
   }))
 
   const warLeaders = (summary.leaderboards.war_top5 ?? []).map((p, i) => ({
@@ -103,6 +123,7 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     name: formatPlayerName(p.player_name, lang),
     team: formatTeamName(p.team, lang),
     value: String(p.WAR ?? "-"),
+    playerHref: `/player/${encodeURIComponent(p.player_name)}`,
   }))
 
   const noDataText = tr("lb.noData", lang)
