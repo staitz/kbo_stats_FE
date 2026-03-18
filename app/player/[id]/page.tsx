@@ -1,14 +1,15 @@
-import Link from "next/link"
-
 import { fetchJson } from "@/lib/api"
 import { SiteHeader } from "@/components/site-header"
 import { PlayerProfile } from "@/components/player-profile"
+import { PlayerBreadcrumb } from "@/components/player-breadcrumb"
 import { PlayerStatsTable } from "@/components/player-stats-table"
 import { PlayerDetailSection } from "@/components/player-detail-section"
+import { PitcherDetailSection } from "@/components/pitcher-detail-section"
+import { PitcherSeasonTable } from "@/components/pitcher-season-table"
 import { PredictionSummary } from "@/components/prediction-summary"
 import type { HitterSeason, PlayerBase } from "@/lib/mock-data"
 
-type PlayerRow = {
+type HitterRow = {
   season: number
   team: string
   games: number
@@ -31,7 +32,29 @@ type PlayerRow = {
   BABIP?: number
 }
 
-type MonthlyRow = {
+type PitcherRow = {
+  season: number
+  team: string
+  role: string
+  games: number
+  W: number
+  L: number
+  SV: number
+  HLD: number
+  IP: number
+  OUTS: number
+  H: number
+  ER: number
+  BB: number
+  SO: number
+  ERA: number
+  WHIP: number
+  K9: number
+  BB9: number
+  KBB: number
+}
+
+type HitterMonthlyRow = {
   month: string
   games: number
   PA: number
@@ -48,8 +71,49 @@ type MonthlyRow = {
   OPS: number
 }
 
+type PitcherMonthlyRow = {
+  month: string
+  team: string
+  games: number
+  W: number
+  L: number
+  SV: number
+  HLD: number
+  IP: number
+  H: number
+  ER: number
+  BB: number
+  SO: number
+  ERA: number
+  WHIP: number
+  K9: number
+  BB9: number
+}
+
+type PlayerPrediction = {
+  role?: string
+  predicted_hr_final?: number
+  predicted_ops_final?: number
+  predicted_war_final?: number
+  predicted_hits_final?: number
+  predicted_rbi_final?: number
+  golden_glove_probability?: number
+  mvp_probability?: number
+  predicted_era_final?: number
+  predicted_whip_final?: number
+  predicted_k9_final?: number
+  predicted_wins_final?: number
+  predicted_so_final?: number
+  predicted_ip_final?: number
+  confidence_score?: number
+  confidence_level?: string
+  model_source?: string
+  as_of_date?: string
+}
+
 type PlayerDetailResponse = {
   season: number
+  player_type?: "hitter" | "pitcher"
   player_name: string
   player_id?: string
   profile?: {
@@ -57,25 +121,14 @@ type PlayerDetailResponse = {
     birth_date?: string | null
     bats_throws?: string | null
   }
-  season_rows?: PlayerRow[]
-  season_by_year?: PlayerRow[]
-  monthly_splits?: MonthlyRow[]
+  season_rows?: HitterRow[] | PitcherRow[]
+  season_by_year?: HitterRow[] | PitcherRow[]
+  monthly_splits?: HitterMonthlyRow[] | PitcherMonthlyRow[]
   season_aggregate?: {
     OPS?: number
-  }
-  latest_prediction?: {
-    predicted_hr_final?: number
-    predicted_ops_final?: number
-    predicted_war_final?: number
-    predicted_hits_final?: number
-    predicted_rbi_final?: number
-    golden_glove_probability?: number
-    mvp_probability?: number
-    confidence_score?: number
-    confidence_level?: string
-    model_source?: string
-    as_of_date?: string
+    team?: string
   } | null
+  latest_prediction?: PlayerPrediction | null
 }
 
 const TEAM_COLORS: Record<string, string> = {
@@ -100,7 +153,11 @@ function toRate(value: unknown): string {
   return toNumber(value).toFixed(3)
 }
 
-function mapSeasonRows(rows: PlayerRow[] = []): HitterSeason[] {
+function toIp(value: unknown): string {
+  return toNumber(value).toFixed(1)
+}
+
+function mapHitterSeasonRows(rows: HitterRow[] = []): HitterSeason[] {
   return rows
     .map((row) => ({
       season: toNumber(row.season),
@@ -128,16 +185,20 @@ function mapSeasonRows(rows: PlayerRow[] = []): HitterSeason[] {
 }
 
 function buildApiProfile(detail: PlayerDetailResponse): PlayerBase {
-  const latest = detail.season_rows?.[0] ?? detail.season_by_year?.[0]
+  const latest = detail.season_rows?.[0] as Partial<HitterRow & PitcherRow> | undefined
   const teams = detail.profile?.teams_in_season ?? []
-  const teamLabel = teams.length > 0 ? teams.join(" / ") : (latest?.team ?? "-")
+  const teamLabel = teams.length > 0 ? teams.join(" / ") : String(latest?.team ?? "-")
+  const pitcherRole = detail.player_type === "pitcher" ? String(latest?.role ?? "").trim() : ""
+  const positionLabel = detail.player_type === "pitcher"
+    ? (pitcherRole ? `투수 · ${pitcherRole}` : "투수")
+    : "타자"
 
   return {
     id: detail.player_id ?? `api-${detail.player_name}`,
     name: detail.player_name,
     team: teamLabel,
-    teamColor: TEAM_COLORS[latest?.team ?? ""] ?? "#6b7280",
-    position: "타자",
+    teamColor: TEAM_COLORS[String(latest?.team ?? "")] ?? "#6b7280",
+    position: positionLabel,
     number: 0,
     birthDate: detail.profile?.birth_date ?? "-",
     age: 0,
@@ -153,21 +214,35 @@ function isApiNotFound(error: unknown): boolean {
   return error instanceof Error && error.message.includes("API 404")
 }
 
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-6">
+      <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+    </div>
+  )
+}
+
+
+
 export default async function PlayerPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams?: Promise<{ season?: string }> | { season?: string }
+  searchParams?: Promise<{ season?: string; player_type?: string }> | { season?: string; player_type?: string }
 }) {
   const [{ id }, qs] = await Promise.all([params, searchParams ? Promise.resolve(searchParams) : Promise.resolve({})])
   const decodedId = decodeURIComponent(id)
   const season = toNumber((qs as { season?: string }).season) || undefined
+  const playerType = String((qs as { player_type?: string }).player_type || "")
 
   let detail: PlayerDetailResponse | null = null
   let notFound = false
+  const fallbackPlayersHref = playerType === "pitcher" ? "/players?tab=pitchers" : "/players?tab=hitters"
+
   try {
-    detail = await fetchJson<PlayerDetailResponse>(`/players/${encodeURIComponent(decodedId)}`, { season })
+    detail = await fetchJson<PlayerDetailResponse>(`/players/${encodeURIComponent(decodedId)}`, { season, player_type: playerType })
   } catch (error) {
     notFound = isApiNotFound(error)
     if (!notFound) throw error
@@ -178,87 +253,80 @@ export default async function PlayerPage({
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <main className="mx-auto max-w-7xl px-4 py-6">
-          <nav className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Link href="/" className="transition-colors hover:text-foreground">Home</Link>
-            <span>/</span>
-            <Link href="/players" className="transition-colors hover:text-foreground">Players</Link>
-            <span>/</span>
-            <span className="text-foreground">{decodedId}</span>
-          </nav>
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h1 className="text-lg font-semibold text-foreground">선수 상세 정보가 없습니다</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              "{decodedId}" 선수의 실제 데이터를 찾지 못했습니다. mock 데이터는 더 이상 표시하지 않습니다.
-            </p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  const seasonHistory = mapSeasonRows(detail.season_by_year || detail.season_rows || [])
-  const monthlyRows = detail.monthly_splits ?? []
-  const availableSeasons = Array.from(
-    new Set((detail.season_by_year || detail.season_rows || []).map((row) => Number(row.season))),
-  )
-    .filter(Boolean)
-    .sort((a, b) => b - a)
-
-  if (seasonHistory.length === 0) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SiteHeader />
-        <main className="mx-auto max-w-7xl px-4 py-6">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <h1 className="text-lg font-semibold text-foreground">시즌 기록이 없습니다</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              "{detail.player_name}" 선수의 시즌 기록이 아직 없습니다.
-            </p>
-          </div>
+          <PlayerBreadcrumb playerName={decodedId} playersHref={fallbackPlayersHref} />
+          <EmptyState title="선수 상세 정보가 없습니다" body={`"${decodedId}" 선수의 데이터를 찾지 못했습니다.`} />
         </main>
       </div>
     )
   }
 
   const profile = buildApiProfile(detail)
+  const hitterSeasonHistory = mapHitterSeasonRows((detail.season_by_year || detail.season_rows || []) as HitterRow[])
+  const pitcherSeasonHistory = ((detail.season_by_year || detail.season_rows || []) as PitcherRow[])
+    .slice()
+    .sort((a, b) => a.season - b.season)
+  const availableSeasons = Array.from(
+    new Set((detail.season_by_year || detail.season_rows || []).map((row) => Number(row.season))),
+  )
+    .filter(Boolean)
+    .sort((a, b) => b - a)
+  const playersHref = detail.player_type === "pitcher" ? "/players?tab=pitchers" : "/players?tab=hitters"
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <nav className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Link href="/" className="transition-colors hover:text-foreground">홈</Link>
-          <span>/</span>
-          <Link href="/players" className="transition-colors hover:text-foreground">선수</Link>
-          <span>/</span>
-          <span className="text-foreground">{detail.player_name}</span>
-        </nav>
+        <PlayerBreadcrumb playerName={detail.player_name} playersHref={playersHref} />
 
         <PlayerProfile player={profile} />
 
-        <section className="mt-6">
-          <PredictionSummary prediction={detail.latest_prediction} />
-        </section>
+        {detail.player_type === "pitcher" ? (
+          <>
+            <section className="mt-6">
+              <PredictionSummary prediction={detail.latest_prediction} playerType="pitcher" />
+            </section>
 
-        <PlayerDetailSection
-          playerName={detail.player_name}
-          playerId={detail.player_id ?? detail.player_name}
-          seasonHistory={seasonHistory.map((seasonRow) => ({
-            season: Number(seasonRow.season),
-            team: seasonRow.team,
-            HR: Number(seasonRow.HR ?? 0),
-            AVG: seasonRow.AVG,
-            OPS: seasonRow.OPS,
-            WAR: seasonRow.WAR,
-          }))}
-          monthlyRows={monthlyRows}
-          selectedSeason={detail.season}
-          availableSeasons={availableSeasons.length > 0 ? availableSeasons : [detail.season]}
-        />
+            <PitcherDetailSection
+              monthlyRows={(detail.monthly_splits || []) as PitcherMonthlyRow[]}
+              selectedSeason={detail.season}
+              availableSeasons={availableSeasons.length > 0 ? availableSeasons : [detail.season]}
+            />
 
-        <section className="mt-6">
-          <PlayerStatsTable seasons={seasonHistory} />
-        </section>
+            <section className="mt-6">
+              <div className="mb-3">
+                <h2 className="text-lg font-semibold text-foreground">시즌 기록</h2>
+                <p className="mt-1 text-sm text-muted-foreground">역대 시즌 합계 기록입니다.</p>
+              </div>
+              <PitcherSeasonTable rows={pitcherSeasonHistory} />
+            </section>
+          </>
+        ) : (
+          <>
+            <section className="mt-6">
+              <PredictionSummary prediction={detail.latest_prediction} playerType="hitter" />
+            </section>
+
+            <PlayerDetailSection
+              playerName={detail.player_name}
+              playerId={detail.player_id ?? detail.player_name}
+              seasonHistory={hitterSeasonHistory.map((seasonRow) => ({
+                season: Number(seasonRow.season),
+                team: seasonRow.team,
+                HR: Number(seasonRow.HR ?? 0),
+                AVG: seasonRow.AVG,
+                OPS: seasonRow.OPS,
+                WAR: seasonRow.WAR,
+              }))}
+              monthlyRows={(detail.monthly_splits || []) as HitterMonthlyRow[]}
+              selectedSeason={detail.season}
+              availableSeasons={availableSeasons.length > 0 ? availableSeasons : [detail.season]}
+            />
+
+            <section className="mt-6">
+              <PlayerStatsTable seasons={hitterSeasonHistory} />
+            </section>
+          </>
+        )}
       </main>
     </div>
   )
