@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch"
 import { fetchJson } from "@/lib/api"
 import { useLang, tr } from "@/components/lang-context"
 import { formatPlayerName, formatTeamName } from "@/lib/romanize"
+import { getDefaultSeasonStringByKst } from "@/lib/season"
 
 type ViewMode = "card" | "table"
 type TeamFilter = "all" | string
@@ -51,6 +52,7 @@ type LeaderboardResponse = {
   limit: number
   offset: number
   rows: HitterRow[]
+  available_seasons?: number[]
 }
 
 type PitcherRow = {
@@ -98,17 +100,6 @@ function formatMetric(value: number, metric: string) {
   return String(Math.round(Number(value || 0)))
 }
 
-function getDefaultSeasonByKstDate() {
-  const seasonStart = "2026-03-28"
-  const todayKst = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
-  return todayKst >= seasonStart ? "2026" : "2025"
-}
-
 export default function PlayersPage() {
   const { lang } = useLang()
   const router = useRouter()
@@ -116,7 +107,7 @@ export default function PlayersPage() {
   const [playerTab, setPlayerTab] = useState<PlayerTab>("pitchers")
   const [search, setSearch] = useState("")
   const [teamFilter, setTeamFilter] = useState<TeamFilter>("all")
-  const [season, setSeason] = useState("2025")
+  const [season, setSeason] = useState(getDefaultSeasonStringByKst)
   const [viewMode, setViewMode] = useState<ViewMode>("table")
   const [hitterSort, setHitterSort] = useState<string>("AVG")
   const [pitcherSort, setPitcherSort] = useState<string>("ERA")
@@ -124,8 +115,10 @@ export default function PlayersPage() {
   const [showPitcherRegulation, setShowPitcherRegulation] = useState(true)
 
   useEffect(() => {
-    setSeason(getDefaultSeasonByKstDate())
+    setSeason(getDefaultSeasonStringByKst())
   }, [])
+
+
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -182,6 +175,10 @@ export default function PlayersPage() {
       refetchOnWindowFocus: false,
     })
 
+  // DB에 데이터가 있는 시즌만 표시 (데이터 로드 전에는 현재 연도 1개)
+  const seasonOptions = leaderboardData?.available_seasons?.map(String)
+    ?? [String(Number(season))]
+
   const filteredHitters = useMemo(() => {
     const rows = leaderboardData?.rows ?? []
     if (!search.trim()) return rows
@@ -216,9 +213,11 @@ export default function PlayersPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2026">2026</SelectItem>
-                <SelectItem value="2025">2025</SelectItem>
-                <SelectItem value="2024">2024</SelectItem>
+                {seasonOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
