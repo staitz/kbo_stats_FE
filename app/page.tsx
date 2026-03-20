@@ -4,6 +4,7 @@ import { LeaderboardMini } from "@/components/leaderboard-mini"
 import { RecentGames } from "@/components/recent-games"
 import { HomeContent } from "@/components/home-content"
 import { fetchJson } from "@/lib/api"
+import { getDefaultSeasonYearByKst } from "@/lib/season"
 
 type StandingsResponse = {
   as_of_date: string | null
@@ -64,8 +65,11 @@ type HomeSummaryResponse = {
       PA?: number
     }[]
     war_top5?: {
+      player_type?: "hitter" | "pitcher"
       player_name: string
       team: string
+      PA?: number
+      OUTS?: number
       WAR?: number | string
     }[]
   }
@@ -78,19 +82,8 @@ type HomeSummaryResponse = {
   }
 }
 
-function getDefaultSeasonByKstDate() {
-  const seasonStart = "2026-03-28"
-  const todayKst = new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
-  return todayKst >= seasonStart ? 2026 : 2025
-}
-
 export default async function HomePage() {
-  const season = getDefaultSeasonByKstDate()
+  const season = getDefaultSeasonYearByKst()
   const now = new Date()
   const yyyymmdd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`
 
