@@ -6,6 +6,9 @@ import { HomeContent } from "@/components/home-content"
 import { fetchJson } from "@/lib/api"
 import { getDefaultSeasonYearByKst } from "@/lib/season"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0 // Optional, explicitly set to 0 to disable caching
+
 type StandingsResponse = {
   as_of_date: string | null
   rows: {
