@@ -343,7 +343,6 @@ export default function TeamPage() {
                             >
                               {formatPlayerName(row.player_name, lang)}
                             </Link>
-                            {row.birth_date && row.birth_date !== "-" ? ` (${formatKoreanDate(row.birth_date)})` : ""}
                           </TableCell>
                           <TableCell className="text-center text-sm font-mono">{row.PA}</TableCell>
                           <TableCell className="text-center text-sm font-mono">{Number(row.OPS || 0).toFixed(3)}</TableCell>
@@ -379,7 +378,6 @@ export default function TeamPage() {
                             >
                               {formatPlayerName(row.player_name, lang)}
                             </Link>
-                            {row.birth_date && row.birth_date !== "-" ? ` (${formatKoreanDate(row.birth_date)})` : ""}
                           </TableCell>
                           <TableCell className="text-center text-sm font-mono">{row.PA}</TableCell>
                           <TableCell className="text-center text-sm font-mono">{row.HR}</TableCell>
