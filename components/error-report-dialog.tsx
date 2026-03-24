@@ -72,7 +72,7 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
             <select
               value={page}
               onChange={(e) => setPage(e.target.value)}
-              className="rounded-md border border-border bg-background pl-3 pr-14 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-[120px] py-2 text-sm focus:border-primary focus:outline-none"
             >
               <option value="home">{tr("report.page.home", lang)}</option>
               <option value="players">{tr("report.page.players", lang)}</option>
@@ -90,7 +90,7 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
             <select
               value={issueType}
               onChange={(e) => setIssueType(e.target.value)}
-              className="rounded-md border border-border bg-background pl-3 pr-14 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-[120px] py-2 text-sm focus:border-primary focus:outline-none"
             >
               <option value="wrong_stat">{tr("report.issueType.wrong_stat", lang)}</option>
               <option value="missing_data">{tr("report.issueType.missing_data", lang)}</option>

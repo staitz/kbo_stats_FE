@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useLang, tr } from "@/components/lang-context"
 import { fetchJson } from "@/lib/api"
 import { formatPlayerName, formatTeamName } from "@/lib/romanize"
+import { GlossaryDialog } from "@/components/glossary-dialog"
 
 type SearchRow = {
   player_id: string
@@ -175,6 +176,11 @@ export function SiteHeader() {
               )}
             </Link>
           ))}
+          <GlossaryDialog>
+            <button className="relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground">
+              {tr("home.glossary", lang)}
+            </button>
+          </GlossaryDialog>
         </nav>
 
         <div className="flex flex-1 justify-center px-1">
@@ -272,7 +278,7 @@ export function SiteHeader() {
             <div className="absolute top-10 right-0 w-64 rounded-lg border border-border bg-card p-3 shadow-xl">
               <div className="mb-3 md:hidden">
                 <p className="mb-2 text-xs font-medium text-muted-foreground">{tr("ui.menu", lang)}</p>
-                <div className="grid grid-cols-3 gap-1">
+                <div className="grid grid-cols-2 gap-1">
                   {navItems.map((item) => (
                     <Link
                       key={item.href}
@@ -285,6 +291,11 @@ export function SiteHeader() {
                       {item.label}
                     </Link>
                   ))}
+                  <GlossaryDialog>
+                    <button className="rounded-md w-full px-2 py-1.5 text-center text-xs bg-secondary text-muted-foreground">
+                      {tr("home.glossary", lang)}
+                    </button>
+                  </GlossaryDialog>
                 </div>
               </div>
 
