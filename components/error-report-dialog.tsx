@@ -23,7 +23,6 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
   const [statusMsg, setStatusMsg] = useState("")
 
   const [page, setPage] = useState("home")
-  const [tab, setTab] = useState("overview")
   const [issueType, setIssueType] = useState("wrong_stat")
   const [message, setMessage] = useState("")
 
@@ -37,7 +36,6 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
         method: "POST",
         body: JSON.stringify({
           page,
-          tab,
           issue_type: issueType,
           message,
           reported_url: pathname || "",
@@ -74,7 +72,7 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
             <select
               value={page}
               onChange={(e) => setPage(e.target.value)}
-              className="rounded-md border border-border bg-background pl-3 pr-10 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-14 py-2 text-sm focus:border-primary focus:outline-none"
             >
               <option value="home">{tr("report.page.home", lang)}</option>
               <option value="players">{tr("report.page.players", lang)}</option>
@@ -84,23 +82,6 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">
-              {tr("report.tab", lang)}
-            </label>
-            <select
-              value={tab}
-              onChange={(e) => setTab(e.target.value)}
-              className="rounded-md border border-border bg-background pl-3 pr-10 py-2 text-sm focus:border-primary focus:outline-none"
-            >
-              <option value="overview">{tr("report.tab.overview", lang)}</option>
-              <option value="hitters">{tr("report.tab.hitters", lang)}</option>
-              <option value="pitchers">{tr("report.tab.pitchers", lang)}</option>
-              <option value="schedule">{tr("report.tab.schedule", lang)}</option>
-              <option value="h2h">{tr("report.tab.h2h", lang)}</option>
-              <option value="other">{tr("report.tab.other", lang)}</option>
-            </select>
-          </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
@@ -109,7 +90,7 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
             <select
               value={issueType}
               onChange={(e) => setIssueType(e.target.value)}
-              className="rounded-md border border-border bg-background pl-3 pr-10 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-14 py-2 text-sm focus:border-primary focus:outline-none"
             >
               <option value="wrong_stat">{tr("report.issueType.wrong_stat", lang)}</option>
               <option value="missing_data">{tr("report.issueType.missing_data", lang)}</option>
