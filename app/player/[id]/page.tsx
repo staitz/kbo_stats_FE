@@ -137,11 +137,11 @@ const TEAM_COLORS: Record<string, string> = {
   KT: "#000000",
   NC: "#315288",
   SSG: "#CE0E2D",
-  두산: "#131230",
-  롯데: "#041E42",
-  삼성: "#074CA1",
-  키움: "#820024",
-  한화: "#FF6600",
+  "두산": "#131230",
+  "롯데": "#041E42",
+  "삼성": "#074CA1",
+  "키움": "#820024",
+  "한화": "#FF6600",
 }
 
 function toNumber(value: unknown): number {
@@ -151,10 +151,6 @@ function toNumber(value: unknown): number {
 
 function toRate(value: unknown): string {
   return toNumber(value).toFixed(3)
-}
-
-function toIp(value: unknown): string {
-  return toNumber(value).toFixed(1)
 }
 
 function mapHitterSeasonRows(rows: HitterRow[] = []): HitterSeason[] {
@@ -190,8 +186,8 @@ function buildApiProfile(detail: PlayerDetailResponse): PlayerBase {
   const teamLabel = teams.length > 0 ? teams.join(" / ") : String(latest?.team ?? "-")
   const pitcherRole = detail.player_type === "pitcher" ? String(latest?.role ?? "").trim() : ""
   const positionLabel = detail.player_type === "pitcher"
-    ? (pitcherRole ? `투수 · ${pitcherRole}` : "투수")
-    : "타자"
+    ? (pitcherRole ? `Pitcher · ${pitcherRole}` : "Pitcher")
+    : "Hitter"
 
   return {
     id: detail.player_id ?? `api-${detail.player_name}`,
@@ -223,8 +219,6 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   )
 }
 
-
-
 export default async function PlayerPage({
   params,
   searchParams,
@@ -254,7 +248,7 @@ export default async function PlayerPage({
         <SiteHeader />
         <main className="mx-auto max-w-7xl px-4 py-6">
           <PlayerBreadcrumb playerName={decodedId} playersHref={fallbackPlayersHref} />
-          <EmptyState title="선수 상세 정보가 없습니다" body={`"${decodedId}" 선수의 데이터를 찾지 못했습니다.`} />
+          <EmptyState title="Player details unavailable" body={`Could not find player data for "${decodedId}".`} />
         </main>
       </div>
     )
@@ -294,8 +288,8 @@ export default async function PlayerPage({
 
             <section className="mt-6">
               <div className="mb-3">
-                <h2 className="text-lg font-semibold text-foreground">시즌 기록</h2>
-                <p className="mt-1 text-sm text-muted-foreground">역대 시즌 합계 기록입니다.</p>
+                <h2 className="text-lg font-semibold text-foreground">Season Stats</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Season-by-season pitching totals.</p>
               </div>
               <PitcherSeasonTable rows={pitcherSeasonHistory} />
             </section>
