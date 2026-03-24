@@ -4,14 +4,14 @@
 
 @layer base {
   :root {
-    /* 배경: 눈부심을 줄인 웜 스톤 그레이 */
-    --background: 120 8% 93%;
-    --foreground: 220 25% 12%;
-    /* 카드: 따뜻한 오프화이트 */
-    --card: 120 5% 97%;
-    --card-foreground: 220 25% 12%;
-    --popover: 120 5% 97%;
-    --popover-foreground: 220 25% 12%;
+    /* 배경: 흰색에 가까운 아주 희미한 초록 힌트 */
+    --background: 142 6% 92%;
+    --foreground: 220 25% 10%;
+    /* 카드: 밝은 오프화이트 — 배경 위에 뜨는 느낌 */
+    --card: 142 5% 97%;
+    --card-foreground: 220 25% 10%;
+    --popover: 142 5% 97%;
+    --popover-foreground: 220 25% 10%;
     /* 초록색 포인트 — 다크모드와 동일한 밝기로 눈에 잘 띄게 */
     --primary: 142 71% 45%;
     --primary-foreground: 0 0% 100%;
