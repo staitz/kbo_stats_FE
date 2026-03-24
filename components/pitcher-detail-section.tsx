@@ -129,7 +129,6 @@ export function PitcherDetailSection({ monthlyRows, selectedSeason, availableSea
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis dataKey="monthLabel" tick={{ fontSize: 11, fill: tickColor }} />
                 <YAxis
-                  reversed
                   tick={{ fontSize: 11, fill: tickColor }}
                   tickFormatter={(v) => toNumber(v).toFixed(2)}
                 />
