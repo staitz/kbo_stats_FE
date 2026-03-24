@@ -179,6 +179,38 @@ export const t: Record<string, Record<Lang, string>> = {
   "chart.noData":            { ko: "시즌 월별 게임 로그 데이터가 없습니다.", en: "No monthly game log data for this season." },
   "chart.cumAvg":            { ko: "누적 타율",   en: "Cum. AVG" },
   "chart.cumOps":            { ko: "누적 OPS",    en: "Cum. OPS" },
+  
+  // Error Report
+  "report.page":             { ko: "발생 페이지", en: "Page" },
+  "report.page.home":        { ko: "홈",          en: "Home" },
+  "report.page.players":     { ko: "선수",        en: "Players" },
+  "report.page.player_detail":{ ko: "선수 상세",  en: "Player Detail" },
+  "report.page.team":        { ko: "팀",          en: "Team" },
+  "report.page.other":       { ko: "기타",        en: "Other" },
+  
+  "report.tab":              { ko: "관련 탭",     en: "Tab" },
+  "report.tab.overview":     { ko: "개요",        en: "Overview" },
+  "report.tab.hitters":      { ko: "타자",        en: "Hitters" },
+  "report.tab.pitchers":     { ko: "투수",        en: "Pitchers" },
+  "report.tab.schedule":     { ko: "일정",        en: "Schedule" },
+  "report.tab.h2h":          { ko: "상대 전적",   en: "Head to Head" },
+  "report.tab.other":        { ko: "기타",        en: "Other" },
+
+  "report.issueType":        { ko: "오류 유형",   en: "Issue Type" },
+  "report.issueType.wrong_stat": { ko: "잘못된 통계/기록", en: "Wrong Stats" },
+  "report.issueType.missing_data": { ko: "누락된 데이터", en: "Missing Data" },
+  "report.issueType.translation_issue": { ko: "번역 오탈자/어색함", en: "Translation Issue" },
+  "report.issueType.ui_bug": { ko: "화면/UI 깨짐", en: "UI Bug" },
+  "report.issueType.other":  { ko: "기타 건의사항", en: "Other" },
+
+  "report.message":          { ko: "상세 내용",   en: "Details" },
+  "report.messagePlaceholder":{ ko: "오류 내용을 상세히 적어주시면 수정에 큰 도움이 됩니다.", en: "Please describe the issue in detail." },
+  
+  "report.success":          { ko: "성공적으로 접수되었습니다. 감사합니다!", en: "Report submitted successfully. Thank you!" },
+  "report.fail":             { ko: "전송에 실패했습니다. 잠시 후 다시 시도해주세요.", en: "Failed to submit. Please try again later." },
+  "report.cancel":           { ko: "취소",        en: "Cancel" },
+  "report.submit":           { ko: "제보하기",    en: "Submit" },
+  "report.submitting":       { ko: "전송 중...",  en: "Submitting..." },
 }
 
 /** 번역 헬퍼 */

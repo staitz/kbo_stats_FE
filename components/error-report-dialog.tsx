@@ -43,7 +43,7 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
           reported_url: pathname || "",
         }),
       })
-      setStatusMsg(lang === "ko" ? "성공적으로 접수되었습니다. 감사합니다!" : "Report submitted successfully. Thank you!")
+      setStatusMsg(tr("report.success", lang))
       setTimeout(() => {
         setOpen(false)
         setStatusMsg("")
@@ -51,7 +51,7 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
       }, 2000)
     } catch (error) {
       console.error("Failed to submit error report", error)
-      setStatusMsg(lang === "ko" ? "전송에 실패했습니다. 잠시 후 다시 시도해주세요." : "Failed to submit. Please try again later.")
+      setStatusMsg(tr("report.fail", lang))
     } finally {
       setLoading(false)
     }
@@ -69,66 +69,66 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
-              {lang === "ko" ? "발생 페이지" : "Page"}
+              {tr("report.page", lang)}
             </label>
             <select
               value={page}
               onChange={(e) => setPage(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-10 py-2 text-sm focus:border-primary focus:outline-none"
             >
-              <option value="home">Home</option>
-              <option value="players">Players</option>
-              <option value="player_detail">Player Detail</option>
-              <option value="team">Team</option>
-              <option value="other">Other</option>
+              <option value="home">{tr("report.page.home", lang)}</option>
+              <option value="players">{tr("report.page.players", lang)}</option>
+              <option value="player_detail">{tr("report.page.player_detail", lang)}</option>
+              <option value="team">{tr("report.page.team", lang)}</option>
+              <option value="other">{tr("report.page.other", lang)}</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
-              {lang === "ko" ? "관련 탭" : "Tab"}
+              {tr("report.tab", lang)}
             </label>
             <select
               value={tab}
               onChange={(e) => setTab(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-10 py-2 text-sm focus:border-primary focus:outline-none"
             >
-              <option value="overview">Overview</option>
-              <option value="hitters">Hitters</option>
-              <option value="pitchers">Pitchers</option>
-              <option value="schedule">Schedule</option>
-              <option value="h2h">Head to Head</option>
-              <option value="other">Other</option>
+              <option value="overview">{tr("report.tab.overview", lang)}</option>
+              <option value="hitters">{tr("report.tab.hitters", lang)}</option>
+              <option value="pitchers">{tr("report.tab.pitchers", lang)}</option>
+              <option value="schedule">{tr("report.tab.schedule", lang)}</option>
+              <option value="h2h">{tr("report.tab.h2h", lang)}</option>
+              <option value="other">{tr("report.tab.other", lang)}</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
-              {lang === "ko" ? "오류 유형" : "Issue Type"}
+              {tr("report.issueType", lang)}
             </label>
             <select
               value={issueType}
               onChange={(e) => setIssueType(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+              className="rounded-md border border-border bg-background pl-3 pr-10 py-2 text-sm focus:border-primary focus:outline-none"
             >
-              <option value="wrong_stat">{lang === "ko" ? "잘못된 통계/기록" : "Wrong Stats"}</option>
-              <option value="missing_data">{lang === "ko" ? "누락된 데이터" : "Missing Data"}</option>
-              <option value="translation_issue">{lang === "ko" ? "번역 오탈자/어색함" : "Translation Issue"}</option>
-              <option value="ui_bug">{lang === "ko" ? "화면/UI 깨짐" : "UI Bug"}</option>
-              <option value="other">{lang === "ko" ? "기타 건의사항" : "Other"}</option>
+              <option value="wrong_stat">{tr("report.issueType.wrong_stat", lang)}</option>
+              <option value="missing_data">{tr("report.issueType.missing_data", lang)}</option>
+              <option value="translation_issue">{tr("report.issueType.translation_issue", lang)}</option>
+              <option value="ui_bug">{tr("report.issueType.ui_bug", lang)}</option>
+              <option value="other">{tr("report.issueType.other", lang)}</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">
-              {lang === "ko" ? "상세 내용" : "Details"}
+              {tr("report.message", lang)}
             </label>
             <Textarea
               className="resize-none"
               rows={4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={lang === "ko" ? "오류 내용을 상세히 적어주시면 수정에 큰 도움이 됩니다." : "Please describe the issue in detail."}
+              placeholder={tr("report.messagePlaceholder", lang)}
               required
             />
           </div>
@@ -141,10 +141,10 @@ export function ErrorReportDialog({ children }: { children: React.ReactNode }) {
 
           <div className="flex justify-end gap-2 mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              {lang === "ko" ? "취소" : "Cancel"}
+              {tr("report.cancel", lang)}
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (lang === "ko" ? "전송 중..." : "Submitting...") : (lang === "ko" ? "제보하기" : "Submit")}
+              {loading ? tr("report.submitting", lang) : tr("report.submit", lang)}
             </Button>
           </div>
         </form>
