@@ -3,6 +3,7 @@
 import { useLang, tr } from "@/components/lang-context"
 import { GlossaryDialog } from "@/components/glossary-dialog"
 import { DataSourcesDialog } from "@/components/data-sources-dialog"
+import { ErrorReportDialog } from "@/components/error-report-dialog"
 
 export function SiteFooter() {
   const { lang } = useLang()
@@ -18,7 +19,9 @@ export function SiteFooter() {
           <DataSourcesDialog>
             <span className="cursor-pointer transition-colors hover:text-foreground">{tr("home.dataSources", lang)}</span>
           </DataSourcesDialog>
-          <span className="cursor-default text-muted-foreground">{tr("home.reportIssue", lang)}</span>
+          <ErrorReportDialog>
+            <span className="cursor-pointer transition-colors hover:text-foreground">{tr("home.reportIssue", lang)}</span>
+          </ErrorReportDialog>
         </div>
       </div>
     </footer>
