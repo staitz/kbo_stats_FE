@@ -160,11 +160,6 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <GlossaryDialog>
-            <button className="relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-muted-foreground hover:bg-secondary hover:text-foreground">
-              {tr("home.glossary", lang)}
-            </button>
-          </GlossaryDialog>
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -262,6 +257,12 @@ export function SiteHeader() {
             )}
           </div>
         </div>
+
+        <GlossaryDialog>
+          <button className="hidden whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:block">
+            {tr("home.glossary", lang)}
+          </button>
+        </GlossaryDialog>
 
         <div className="relative flex shrink-0 items-center" ref={menuRef}>
           <Button
