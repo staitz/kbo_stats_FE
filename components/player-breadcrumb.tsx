@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useLang, tr } from "@/components/lang-context"
+import { formatPlayerName } from "@/lib/romanize"
 
 export function PlayerBreadcrumb({ playerName, playersHref = "/players" }: { playerName: string; playersHref?: string }) {
   const { lang } = useLang()
@@ -15,7 +16,7 @@ export function PlayerBreadcrumb({ playerName, playersHref = "/players" }: { pla
         {tr("player.players", lang)}
       </Link>
       <span>/</span>
-      <span className="text-foreground">{playerName}</span>
+      <span className="text-foreground">{formatPlayerName(playerName, lang)}</span>
     </nav>
   )
 }
