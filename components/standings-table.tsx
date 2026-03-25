@@ -92,7 +92,9 @@ export function StandingsTable({
                 <TableCell className="hidden text-center text-xs font-mono sm:table-cell">
                   {localizeStreak(team.streak, lang)}
                 </TableCell>
-                <TableCell className="hidden text-center text-xs font-mono text-muted-foreground md:table-cell">{team.recent_10 ?? "-"}</TableCell>
+                <TableCell className="hidden text-center text-xs font-mono text-muted-foreground md:table-cell">
+                  {team.recent_10 ? (lang === "en" ? team.recent_10.replace(/승/g, 'W-').replace(/무/g, 'D-').replace(/패/g, 'L').replace(/-$/, '') : team.recent_10) : "-"}
+                </TableCell>
               </TableRow>
             ))
           )}
