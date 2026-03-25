@@ -86,9 +86,17 @@ const HITTER_SORT_FIELDS = ["AVG", "OPS", "H", "HR", "RBI", "OBP", "SLG"] as con
 const PITCHER_SORT_FIELDS = ["ERA", "WHIP", "K9", "SO", "W", "SV", "HLD", "IP"] as const
 const TEAM_OPTIONS = ["KIA", "LG", "KT", "NC", "SSG", "두산", "롯데", "삼성", "키움", "한화"] as const
 
-const FIELD_LABEL: Record<string, string> = {
-  AVG: "타율", OPS: "OPS", H: "안타", HR: "홈런", RBI: "타점", OBP: "출루율", SLG: "장타율",
-  ERA: "평자", WHIP: "WHIP", K9: "K/9", SO: "삼진", W: "승", SV: "세이브", HLD: "홀드", IP: "이닝",
+const FIELD_LABEL: Record<"ko" | "en", Record<string, string>> = {
+  ko: {
+    AVG: "타율", OPS: "OPS", H: "안타", HR: "홈런", RBI: "타점", OBP: "출루율", SLG: "장타율",
+    ERA: "평자", WHIP: "WHIP", K9: "K/9", SO: "삼진", W: "승", SV: "세이브", HLD: "홀드", IP: "이닝",
+    games: "경기", PA: "타석", AB: "타수", role: "보직",
+  },
+  en: {
+    AVG: "AVG", OPS: "OPS", H: "H", HR: "HR", RBI: "RBI", OBP: "OBP", SLG: "SLG",
+    ERA: "ERA", WHIP: "WHIP", K9: "K/9", SO: "SO", W: "W", SV: "SV", HLD: "HLD", IP: "IP",
+    games: "G", PA: "PA", AB: "AB", role: "Role",
+  },
 }
 
 const DECIMAL_METRICS = new Set(["AVG", "OBP", "SLG", "OPS"])
@@ -139,8 +147,9 @@ export default function PlayersPage() {
   }
 
   const showRegulation = playerTab === "pitchers" ? showPitcherRegulation : showHitterRegulation
-  const regulationLabel = playerTab === "pitchers" ? "규정이닝" : tr("players.regulation", lang)
+  const regulationLabel = playerTab === "pitchers" ? (lang === "ko" ? "규정이닝" : "Min IP") : tr("players.regulation", lang)
   const regulationToggle = playerTab === "pitchers" ? setShowPitcherRegulation : setShowHitterRegulation
+  const fieldLabel = FIELD_LABEL[lang]
 
   const { data: leaderboardData, isLoading, isError, error } = useQuery<LeaderboardResponse>({
     queryKey: ["leaderboard", "hitter", season, teamFilter, showHitterRegulation, hitterSort],
@@ -202,7 +211,9 @@ export default function PlayersPage() {
             <p className="mt-1 text-sm text-muted-foreground">{tr("players.subtitle", lang)}</p>
             {leaderboardData?.mode === "PRESEASON_FALLBACK" && (
               <p className="mt-1 text-xs text-amber-500">
-                요청 시즌 {leaderboardData.requested_season} 데이터가 없어 {leaderboardData.effective_season} 시즌을 표시 중입니다.
+                {lang === "ko"
+                  ? `요청 시즌 ${leaderboardData.requested_season} 데이터가 없어 ${leaderboardData.effective_season} 시즌을 표시 중입니다.`
+                  : `No data for requested season ${leaderboardData.requested_season}; showing ${leaderboardData.effective_season} instead.`}
               </p>
             )}
           </div>
@@ -296,7 +307,7 @@ export default function PlayersPage() {
                       : "bg-secondary text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {FIELD_LABEL[field] ?? field}
+                  {fieldLabel[field] ?? field}
                 </button>
               ))}
             </div>
@@ -320,7 +331,7 @@ export default function PlayersPage() {
                     <p className="text-sm font-semibold text-foreground">{formatPlayerName(p.player_name, lang)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{formatTeamName(p.team, lang)}</p>
                     <p className="mt-1 text-[11px] text-muted-foreground">{p.role || "P"}</p>
-                    <p className="mt-3 text-xs text-muted-foreground">{FIELD_LABEL[pitcherSort] ?? pitcherSort}</p>
+                    <p className="mt-3 text-xs text-muted-foreground">{fieldLabel[pitcherSort] ?? pitcherSort}</p>
                     <p className="text-lg font-bold text-primary">
                       {formatMetric(Number(p[pitcherSort as keyof PitcherRow] ?? 0), pitcherSort)}
                     </p>
@@ -343,7 +354,7 @@ export default function PlayersPage() {
                       : "bg-secondary text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {FIELD_LABEL[field] ?? field}
+                  {fieldLabel[field] ?? field}
                 </button>
               ))}
             </div>
@@ -366,7 +377,7 @@ export default function PlayersPage() {
                   >
                     <p className="text-sm font-semibold text-foreground">{formatPlayerName(h.player_name, lang)}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{formatTeamName(h.team, lang)}</p>
-                    <p className="mt-3 text-xs text-muted-foreground">{FIELD_LABEL[hitterSort] ?? hitterSort}</p>
+                    <p className="mt-3 text-xs text-muted-foreground">{fieldLabel[hitterSort] ?? hitterSort}</p>
                     <p className="text-lg font-bold text-primary">
                       {formatMetric(Number(h[hitterSort as keyof HitterRow] ?? 0), hitterSort)}
                     </p>
@@ -383,16 +394,17 @@ export default function PlayersPage() {
 }
 
 function PitcherTable({ pitchers, sortField, season, lang }: { pitchers: PitcherRow[]; sortField: string; season: string; lang: import("@/components/lang-context").Lang }) {
+  const fieldLabel = FIELD_LABEL[lang]
   const ALL_STAT_COLS: { key: keyof PitcherRow; label: string; decimal?: boolean }[] = [
-    { key: "ERA", label: "평자", decimal: true },
+    { key: "ERA", label: fieldLabel.ERA, decimal: true },
     { key: "WHIP", label: "WHIP", decimal: true },
     { key: "K9", label: "K/9", decimal: true },
-    { key: "SO", label: "삼진" },
-    { key: "W", label: "승" },
-    { key: "SV", label: "세이브" },
-    { key: "HLD", label: "홀드" },
-    { key: "IP", label: "이닝", decimal: true },
-    { key: "games", label: "경기" },
+    { key: "SO", label: fieldLabel.SO },
+    { key: "W", label: fieldLabel.W },
+    { key: "SV", label: fieldLabel.SV },
+    { key: "HLD", label: fieldLabel.HLD },
+    { key: "IP", label: fieldLabel.IP, decimal: true },
+    { key: "games", label: fieldLabel.games },
     { key: "BB9", label: "BB/9", decimal: true },
     { key: "KBB", label: "K/BB", decimal: true },
   ]
@@ -412,7 +424,7 @@ function PitcherTable({ pitchers, sortField, season, lang }: { pitchers: Pitcher
             <TableHead className="w-10 text-center text-xs">#</TableHead>
             <TableHead className="text-xs">{tr("players.player", lang)}</TableHead>
             <TableHead className="text-xs">{tr("players.team", lang)}</TableHead>
-            <TableHead className="text-xs text-center">보직</TableHead>
+            <TableHead className="text-xs text-center">{fieldLabel.role}</TableHead>
             {orderedCols.map((col) => (
               <TableHead
                 key={String(col.key)}
@@ -455,18 +467,19 @@ function PitcherTable({ pitchers, sortField, season, lang }: { pitchers: Pitcher
 }
 
 function HitterTable({ hitters, sortField, season, lang }: { hitters: HitterRow[]; sortField: string; season: string; lang: import("@/components/lang-context").Lang }) {
+  const fieldLabel = FIELD_LABEL[lang]
   // 모든 stat 컬럼 정의 (고정 앞 컬럼 제외)
   const ALL_STAT_COLS: { key: keyof HitterRow; label: string; decimal?: boolean }[] = [
-    { key: "AVG", label: "타율", decimal: true },
-    { key: "HR", label: "홈런" },
-    { key: "RBI", label: "타점" },
-    { key: "OBP", label: "출루율", decimal: true },
-    { key: "SLG", label: "장타율", decimal: true },
+    { key: "AVG", label: fieldLabel.AVG, decimal: true },
+    { key: "HR", label: fieldLabel.HR },
+    { key: "RBI", label: fieldLabel.RBI },
+    { key: "OBP", label: fieldLabel.OBP, decimal: true },
+    { key: "SLG", label: fieldLabel.SLG, decimal: true },
     { key: "OPS", label: "OPS", decimal: true },
-    { key: "H", label: "안타" },
-    { key: "games", label: "경기" },
-    { key: "PA", label: "타석" },
-    { key: "AB", label: "타수" },
+    { key: "H", label: fieldLabel.H },
+    { key: "games", label: fieldLabel.games },
+    { key: "PA", label: fieldLabel.PA },
+    { key: "AB", label: fieldLabel.AB },
   ]
 
   // 선택한 sortField를 맨 앞으로 이동
