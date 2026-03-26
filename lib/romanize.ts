@@ -198,6 +198,12 @@ function makeSyllable(cho: string, jung: string, jong = ""): string {
   return String.fromCharCode(0xAC00 + (ci * 21 + vi) * 28 + ji);
 }
 
+const COMPOUND_VOWEL: Record<string, Record<string, string>> = {
+  "ㅗ": { "ㅏ": "ㅘ", "ㅐ": "ㅙ", "ㅣ": "ㅚ" },
+  "ㅜ": { "ㅓ": "ㅝ", "ㅔ": "ㅞ", "ㅣ": "ㅟ" },
+  "ㅡ": { "ㅣ": "ㅢ" },
+};
+
 function composeJamo(jamos: string[]): string {
   let result = "";
   let cho = "", jung = "", jong = "";
@@ -217,7 +223,13 @@ function composeJamo(jamos: string[]): string {
         if (cho && jung) result += makeSyllable(cho, jung, "");
         cho = savedJong; jung = j; jong = "";
       } else if (jung) {
-        flush(); cho = "ㅇ"; jung = j;
+        // Try to combine into compound vowel (e.g. ㅗ+ㅣ=ㅚ)
+        const compound = COMPOUND_VOWEL[jung]?.[j];
+        if (compound) {
+          jung = compound;
+        } else {
+          flush(); cho = "ㅇ"; jung = j;
+        }
       } else if (cho) {
         jung = j;
       } else {
