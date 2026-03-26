@@ -126,6 +126,10 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
     name: formatPlayerName(p.player_name, lang),
     team: formatTeamName(p.team, lang),
     value: String(p.WAR ?? "-"),
+    sub:
+      p.player_type === "pitcher"
+        ? p.OUTS ? `${(Number(p.OUTS) / 3).toFixed(1)} IP` : undefined
+        : p.PA ? `${p.PA} ${tr("stat.pa", lang)}` : undefined,
     playerHref:
       p.player_type === "pitcher"
         ? `/player/${encodeURIComponent(p.player_name)}?player_type=pitcher`
