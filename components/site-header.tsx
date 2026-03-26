@@ -83,12 +83,11 @@ export function SiteHeader() {
     // Detect all-lowercase ASCII → try QWERTY-to-Korean conversion as well
     const isAsciiOnly = /^[a-z]+$/.test(debouncedQuery)
     const koreanQuery = isAsciiOnly ? qwertyToKorean(debouncedQuery) : null
-    const hasKoreanConversion = koreanQuery && koreanQuery !== debouncedQuery
 
     const searches: Promise<{ rows: SearchRow[] }>[] = [
       fetchJson<{ rows: SearchRow[] }>("/players/search", { q: debouncedQuery, limit: 6 }),
     ]
-    if (hasKoreanConversion) {
+    if (koreanQuery && koreanQuery !== debouncedQuery) {
       searches.push(
         fetchJson<{ rows: SearchRow[] }>("/players/search", { q: koreanQuery, limit: 6 })
       )
