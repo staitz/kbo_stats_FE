@@ -10,7 +10,7 @@ import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { useLang, tr } from "@/components/lang-context"
 import { fetchJson } from "@/lib/api"
-import { formatPlayerName, formatTeamName } from "@/lib/romanize"
+import { formatPlayerName, formatTeamName, qwertyToKorean } from "@/lib/romanize"
 import { GlossaryDialog } from "@/components/glossary-dialog"
 
 type SearchRow = {
@@ -21,7 +21,7 @@ type SearchRow = {
   HR?: number | string
   OPS?: number | string
   player_type?: "hitter" | "pitcher"
-  _type?: "player" | "team" // 팀 결과는 _type: "team"
+  _type?: "player" | "team"
 }
 
 const TEAMS: { name: string; aliases: string[] }[] = [
@@ -80,9 +80,33 @@ export function SiteHeader() {
     setIsSearching(true)
     const teamHits = matchTeams(debouncedQuery)
 
-    fetchJson<{ rows: SearchRow[] }>("/players/search", { q: debouncedQuery, limit: 6 })
-      .then((data) => {
-        const playerHits = (data.rows ?? []).map((row) => ({ ...row, _type: "player" as const }))
+    // Detect all-lowercase ASCII → try QWERTY-to-Korean conversion as well
+    const isAsciiOnly = /^[a-z]+$/.test(debouncedQuery)
+    const koreanQuery = isAsciiOnly ? qwertyToKorean(debouncedQuery) : null
+    const hasKoreanConversion = koreanQuery && koreanQuery !== debouncedQuery
+
+    const searches: Promise<{ rows: SearchRow[] }>[] = [
+      fetchJson<{ rows: SearchRow[] }>("/players/search", { q: debouncedQuery, limit: 6 }),
+    ]
+    if (hasKoreanConversion) {
+      searches.push(
+        fetchJson<{ rows: SearchRow[] }>("/players/search", { q: koreanQuery, limit: 6 })
+      )
+    }
+
+    Promise.all(searches)
+      .then((results) => {
+        const seen = new Set<string>()
+        const playerHits: SearchRow[] = []
+        for (const data of results) {
+          for (const row of data?.rows ?? []) {
+            const key = (row.player_id || row.player_name) + (row.team ?? "")
+            if (!seen.has(key)) {
+              seen.add(key)
+              playerHits.push({ ...row, _type: "player" as const })
+            }
+          }
+        }
         setResults([...teamHits, ...playerHits])
         setDropdownOpen(true)
       })
@@ -222,7 +246,9 @@ export function SiteHeader() {
                         >
                           {row._type === "team" ? (
                             <>
-                              <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-[10px] font-bold text-primary shrink-0">T</span>
+                              <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-[10px] font-bold text-primary shrink-0">
+                                T
+                              </span>
                               <div className="min-w-0 flex-1">
                                 <span className="text-sm font-medium text-foreground">{formatTeamName(row.player_name, lang)}</span>
                                 <span className="ml-2 text-xs text-muted-foreground">{lang === "en" ? "Team" : "팀"}</span>
@@ -240,10 +266,14 @@ export function SiteHeader() {
                               {row.player_type === "pitcher" ? (
                                 <span className="text-xs text-muted-foreground">{lang === "en" ? "Pitcher" : "투수"}</span>
                               ) : (
-                                <div className="flex gap-3 text-xs font-mono text-muted-foreground shrink-0">
-                                  {row.AVG !== undefined && <span>AVG {Number.isFinite(Number(row.AVG)) ? Number(row.AVG).toFixed(3) : "-"}</span>}
+                                <div className="flex shrink-0 gap-3 text-xs font-mono text-muted-foreground">
+                                  {row.AVG !== undefined && (
+                                    <span>AVG {Number.isFinite(Number(row.AVG)) ? Number(row.AVG).toFixed(3) : "-"}</span>
+                                  )}
                                   {row.HR !== undefined && <span>HR {String(row.HR ?? "-")}</span>}
-                                  {row.OPS !== undefined && <span>OPS {Number.isFinite(Number(row.OPS)) ? Number(row.OPS).toFixed(3) : "-"}</span>}
+                                  {row.OPS !== undefined && (
+                                    <span>OPS {Number.isFinite(Number(row.OPS)) ? Number(row.OPS).toFixed(3) : "-"}</span>
+                                  )}
                                 </div>
                               )}
                             </>
@@ -293,7 +323,7 @@ export function SiteHeader() {
                     </Link>
                   ))}
                   <GlossaryDialog>
-                    <button className="rounded-md w-full px-2 py-1.5 text-center text-xs bg-secondary text-muted-foreground">
+                    <button className="w-full rounded-md bg-secondary px-2 py-1.5 text-center text-xs text-muted-foreground">
                       {tr("home.glossary", lang)}
                     </button>
                   </GlossaryDialog>

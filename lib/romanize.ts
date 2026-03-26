@@ -173,3 +173,82 @@ export function formatTeamName(team: string, lang: "ko" | "en"): string {
   
   return teamExceptions[team] || team;
 }
+
+// ─── QWERTY → Korean (handle IME-off mistyping) ──────────────────────────────
+
+const QWERTY_TO_JAMO: Record<string, string> = {
+  q:"ㅂ", w:"ㅈ", e:"ㄷ", r:"ㄱ", t:"ㅅ",
+  y:"ㅛ", u:"ㅕ", i:"ㅑ", o:"ㅐ", p:"ㅔ",
+  a:"ㅁ", s:"ㄴ", d:"ㅇ", f:"ㄹ", g:"ㅎ",
+  h:"ㅗ", j:"ㅓ", k:"ㅏ", l:"ㅣ",
+  z:"ㅋ", x:"ㅌ", c:"ㅊ", v:"ㅍ", b:"ㅠ", n:"ㅜ", m:"ㅡ",
+};
+
+const CHO_LIST = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const JUNG_LIST = ["ㅏ","ㅐ","ㅑ","ㅒ","ㅓ","ㅔ","ㅕ","ㅖ","ㅗ","ㅘ","ㅙ","ㅚ","ㅛ","ㅜ","ㅝ","ㅞ","ㅟ","ㅠ","ㅡ","ㅢ","ㅣ"];
+const JONG_LIST = ["","ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const VOWELS = new Set(JUNG_LIST);
+const VALID_JONG = new Set(["ㄱ","ㄲ","ㄴ","ㄷ","ㄹ","ㅁ","ㅂ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"]);
+
+function makeSyllable(cho: string, jung: string, jong = ""): string {
+  const ci = CHO_LIST.indexOf(cho);
+  const vi = JUNG_LIST.indexOf(jung);
+  const ji = JONG_LIST.indexOf(jong);
+  if (ci < 0 || vi < 0 || ji < 0) return cho + jung + jong;
+  return String.fromCharCode(0xAC00 + (ci * 21 + vi) * 28 + ji);
+}
+
+function composeJamo(jamos: string[]): string {
+  let result = "";
+  let cho = "", jung = "", jong = "";
+
+  const flush = () => {
+    if (cho && jung) result += makeSyllable(cho, jung, jong);
+    else if (cho) result += cho;
+    else if (jung) result += makeSyllable("ㅇ", jung, jong);
+    cho = ""; jung = ""; jong = "";
+  };
+
+  for (const j of jamos) {
+    if (VOWELS.has(j)) {
+      if (jong) {
+        // tentative jong becomes next syllable's cho
+        const savedJong = jong;
+        if (cho && jung) result += makeSyllable(cho, jung, "");
+        cho = savedJong; jung = j; jong = "";
+      } else if (jung) {
+        flush(); cho = "ㅇ"; jung = j;
+      } else if (cho) {
+        jung = j;
+      } else {
+        cho = "ㅇ"; jung = j;
+      }
+    } else {
+      // consonant
+      if (jong) {
+        flush(); cho = j;
+      } else if (jung) {
+        if (VALID_JONG.has(j)) jong = j;
+        else { flush(); cho = j; }
+      } else if (cho) {
+        flush(); cho = j;
+      } else {
+        cho = j;
+      }
+    }
+  }
+  flush();
+  return result;
+}
+
+/**
+ * Convert an English-keyboard string typed while IME was off
+ * back into Korean. e.g. "rlaehdud" → "김도영"
+ * Returns the original string unchanged if no mapping is possible.
+ */
+export function qwertyToKorean(input: string): string {
+  const jamos = input.toLowerCase().split("").map(c => QWERTY_TO_JAMO[c] ?? c);
+  // If nothing was mapped, return original
+  if (jamos.every((j, i) => j === input[i])) return input;
+  return composeJamo(jamos);
+}
