@@ -86,7 +86,7 @@ export function PredictionSummary({
 
   if (!prediction) {
     return (
-      <div className="rounded-lg border border-primary/20 bg-card p-6">
+      <div className="rounded-lg border border-border bg-card p-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Brain className="h-5 w-5 text-primary" />
@@ -105,7 +105,7 @@ export function PredictionSummary({
   const cards = playerType === "pitcher" ? buildPitcherCards(prediction, lang) : buildHitterCards(prediction, lang)
 
   return (
-    <div className="rounded-lg border border-primary/20 bg-card p-6">
+    <div className="rounded-lg border border-border bg-card p-6">
       <h3 className="text-sm font-semibold text-foreground">{tr("ai.title", lang)}</h3>
       <p className="mt-2 text-xs text-muted-foreground">
         {tr("ai.asOf", lang)}: {prediction.as_of_date || "-"} / {tr("ai.confidence", lang)}: {confidencePct}% ({prediction.confidence_level || "N/A"})
