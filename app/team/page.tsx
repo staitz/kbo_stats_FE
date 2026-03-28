@@ -155,11 +155,12 @@ export default function TeamPage() {
 
   const effectiveSeason = standingsQuery.data?.effective_season ?? Number(requestedSeason)
   const standingsTeams = standingsQuery.data?.rows ?? []
-  // Always include requestedSeason in the dropdown even if DB has no data yet (e.g. opening day)
+  // Always include the current KST default season in the dropdown (not just requestedSeason)
+  const defaultSeason = getDefaultSeasonStringByKst()
   const rawAvailable = standingsQuery.data?.available_seasons?.map(String) ?? []
-  const seasonOptions = rawAvailable.includes(requestedSeason)
+  const seasonOptions = rawAvailable.includes(defaultSeason)
     ? rawAvailable
-    : [requestedSeason, ...rawAvailable]
+    : [defaultSeason, ...rawAvailable]
   // True when user selected the new season but DB hasn't been populated yet
   const isNewSeasonNoData =
     Number(requestedSeason) > effectiveSeason &&
@@ -277,14 +278,9 @@ export default function TeamPage() {
             {tr("standings.loadError", lang)}
           </div>
         ) : isNewSeasonNoData ? (
-          <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-5 text-center">
-            <p className="text-sm font-semibold text-primary">
-              🎉 {requestedSeason}{lang === "ko" ? " 시즌 개막!" : " Season Opening!"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {lang === "ko"
-                ? "경기 데이터를 수집하는 중입니다. 경기 종료 후 업데이트됩니다."
-                : "Collecting game data. Stats will be updated after games finish."}
+          <div className="mb-6 rounded-lg border border-border bg-card p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {lang === "ko" ? "데이터 준비 중" : "Data not available yet"}
             </p>
           </div>
         ) : (
@@ -310,6 +306,7 @@ export default function TeamPage() {
           </div>
         )}
 
+        {!isNewSeasonNoData && (
         <Tabs defaultValue="roster">
           <TabsList className="bg-secondary">
             <TabsTrigger value="roster" className="gap-1.5">
@@ -595,6 +592,7 @@ export default function TeamPage() {
             )}
           </TabsContent>
         </Tabs>
+        )}
       </main>
     </div>
   )
