@@ -97,7 +97,7 @@ export function HomeContent({
         </div>
 
         <div className="flex flex-col gap-6 lg:col-span-1">
-          <StandingsTable rows={standings.rows} asOfDate={standings.as_of_date} />
+          <StandingsTable rows={standings.rows} asOfDate={standings.as_of_date} currentSeason={season} />
           <RecentGames rows={games.rows} date={games.date} />
         </div>
       </div>
