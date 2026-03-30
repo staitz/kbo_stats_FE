@@ -60,7 +60,9 @@ export function StandingsTable({
           {tr("standings.title", lang)}
           {currentSeason ? <span className="ml-1.5 text-xs text-muted-foreground font-normal">({currentSeason})</span> : null}
         </h2>
-        <span className="font-mono text-xs text-muted-foreground">{isStale ? "-" : (asOfDate ?? "-")}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {isStale ? "-" : (asOfDate && asOfDate.length === 8 ? `${asOfDate.slice(0, 4)}.${asOfDate.slice(4, 6)}.${asOfDate.slice(6, 8)}` : (asOfDate ?? "-"))}
+        </span>
       </div>
       <Table>
         <TableHeader>
