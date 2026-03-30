@@ -219,6 +219,8 @@ function EmptyState({ title, body }: { title: string; body: string }) {
   )
 }
 
+import { cookies } from "next/headers"
+
 export default async function PlayerPage({
   params,
   searchParams,
@@ -226,6 +228,9 @@ export default async function PlayerPage({
   params: Promise<{ id: string }>
   searchParams?: Promise<{ season?: string; player_type?: string }> | { season?: string; player_type?: string }
 }) {
+  const cookieStore = await cookies()
+  const lang = cookieStore.get("NEXT_LOCALE")?.value === "en" ? "en" : "ko"
+
   const [{ id }, qs] = await Promise.all([params, searchParams ? Promise.resolve(searchParams) : Promise.resolve({})])
   const decodedId = decodeURIComponent(id)
   const season = toNumber((qs as { season?: string }).season) || undefined
@@ -288,8 +293,12 @@ export default async function PlayerPage({
 
             <section className="mt-6">
               <div className="mb-3">
-                <h2 className="text-lg font-semibold text-foreground">Season Stats</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Season-by-season pitching totals.</p>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {lang === "en" ? "Season Stats" : "시즌 스탯"}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {lang === "en" ? "Season-by-season pitching totals." : "시즌별 투수 기록 요약"}
+                </p>
               </div>
               <PitcherSeasonTable rows={pitcherSeasonHistory} />
             </section>
