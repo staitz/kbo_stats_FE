@@ -27,7 +27,9 @@ export function RecentGames({
     <div className="rounded-lg border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">{tr("recentGames.title", lang)}</h2>
-        <span className="text-xs text-muted-foreground font-mono">{date ?? "-"}</span>
+        <span className="text-xs text-muted-foreground font-mono">
+          {date && date.length === 8 ? `${date.slice(0, 4)}.${date.slice(4, 6)}.${date.slice(6, 8)}` : (date ?? "-")}
+        </span>
       </div>
       <div className="divide-y divide-border">
         {rows.length === 0 ? (
