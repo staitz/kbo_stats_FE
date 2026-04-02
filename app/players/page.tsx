@@ -131,17 +131,25 @@ export default function PlayersPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const tab = params.get("tab")
-    if (tab === "hitters" || tab === "pitchers") {
-      setPlayerTab(tab)
-      return
+    const sortParam = params.get("sort")
+
+    if (tab === "hitters") {
+      setPlayerTab("hitters")
+      if (sortParam) setHitterSort(sortParam)
+    } else if (tab === "pitchers") {
+      setPlayerTab("pitchers")
+      if (sortParam) setPitcherSort(sortParam)
+    } else {
+      updateTab("pitchers")
     }
-    updateTab("pitchers")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function updateTab(tab: PlayerTab) {
     setPlayerTab(tab)
     const params = new URLSearchParams(window.location.search)
     params.set("tab", tab)
+    params.delete("sort")
     const query = params.toString()
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }

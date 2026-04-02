@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { TrendingUp, Trophy } from "lucide-react"
+import { TrendingUp, Trophy, ChevronRight } from "lucide-react"
 
 import { useLang, tr } from "@/components/lang-context"
 import { formatPlayerName, formatTeamName } from "@/lib/romanize"
@@ -41,18 +41,33 @@ function LeaderCard({
   icon,
   items,
   noDataText,
+  href,
 }: {
   title: string
   icon: React.ReactNode
   items: { rank: number; name: string; team: string; value: string; sub?: string; playerHref?: string }[]
   noDataText: string
+  href?: string
 }) {
-  return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+  const headerContent = (
+    <div className={`flex items-center justify-between border-b border-border px-4 py-3 ${href ? "transition-colors hover:bg-secondary/40" : ""}`}>
+      <div className="flex items-center gap-2">
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
+      {href && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+    </div>
+  )
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {href ? (
+        <Link href={href} className="block group">
+          {headerContent}
+        </Link>
+      ) : (
+        headerContent
+      )}
       <div className="divide-y divide-border">
         {items.length === 0 && <div className="px-4 py-3 text-xs text-muted-foreground">{noDataText}</div>}
         {items.map((item) => {
@@ -145,24 +160,28 @@ export function LeaderboardMini({ summary }: { summary: Summary }) {
         icon={<Trophy className="h-4 w-4 text-primary" />}
         items={avgLeaders}
         noDataText={noDataText}
+        href="/players?tab=hitters&sort=AVG"
       />
       <LeaderCard
         title={tr("lb.hr", lang)}
         icon={<Trophy className="h-4 w-4 text-kbo-highlight" />}
         items={hrLeaders}
         noDataText={noDataText}
+        href="/players?tab=hitters&sort=HR"
       />
       <LeaderCard
         title={tr("lb.era", lang)}
         icon={<TrendingUp className="h-4 w-4 text-primary" />}
         items={eraLeaders}
         noDataText={noDataText}
+        href="/players?tab=pitchers&sort=ERA"
       />
       <LeaderCard
         title={tr("lb.war", lang)}
         icon={<TrendingUp className="h-4 w-4 text-primary" />}
         items={warLeaders}
         noDataText={noDataText}
+        href="/players"
       />
     </div>
   )
