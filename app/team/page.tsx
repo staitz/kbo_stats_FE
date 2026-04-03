@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { CalendarDays, Swords, Trophy, Users } from "lucide-react"
 
@@ -142,9 +143,12 @@ function localizeStreak(streak: string | null | undefined, lang: "ko" | "en"): s
 
 export default function TeamPage() {
   const { lang } = useLang()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [requestedSeason, setRequestedSeason] = useState(getDefaultSeasonStringByKst)
   const [selectedTeam, setSelectedTeam] = useState("")
   const [selectedMonth, setSelectedMonth] = useState("all")
+  const requestedTeam = (searchParams.get("team") || "").trim()
 
   const standingsQuery = useQuery<StandingsResponse>({
     queryKey: ["standings", requestedSeason],
@@ -169,15 +173,31 @@ export default function TeamPage() {
     ? standingsTeams.map((row) => row.team)
     : [...TEAM_OPTIONS]
 
-  // standings 로딩 완료 후 1위 팀으로 초기화 (사용자가 직접 바꾸지 않은 경우)
+  // Prefer the explicit query-string team; otherwise fall back to the top-ranked team.
   useEffect(() => {
     if (!standingsTeams.length) return
-    // standings가 있으면 1위 팀(첫 번째)으로 초기화, 단 사용자가 이미 선택한 팀이 있으면 유지
+
+    if (requestedTeam && standingsTeams.some((row) => row.team === requestedTeam)) {
+      if (selectedTeam !== requestedTeam) {
+        setSelectedTeam(requestedTeam)
+      }
+      return
+    }
+
     const topTeam = standingsTeams[0]?.team
-    if (topTeam && (!selectedTeam || !standingsTeams.map(r => r.team).includes(selectedTeam))) {
+    if (topTeam && (!selectedTeam || !standingsTeams.map((row) => row.team).includes(selectedTeam))) {
       setSelectedTeam(topTeam)
     }
-  }, [standingsTeams]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [requestedTeam, selectedTeam, standingsTeams])
+
+  useEffect(() => {
+    if (!selectedTeam) return
+    if (searchParams.get("team") === selectedTeam) return
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("team", selectedTeam)
+    router.replace(`/team?${params.toString()}`, { scroll: false })
+  }, [router, searchParams, selectedTeam])
 
   const selectedStanding = useMemo(
     () => standingsTeams.find((t) => t.team === selectedTeam) ?? null,
