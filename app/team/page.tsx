@@ -669,10 +669,10 @@ function ScheduleCalendar({
         // 끝난 경기가 있으면 예정 행 제거
         map.set(day, games.filter((g) => g.result !== null))
       } else {
-        // 예정 경기만 있는 경우: 같은 상대팀 중복 제거 (opp_team 기준)
+        // 예정 경기만 있는 경우: game_id 또는 (opp_team + game_time) 기준 중복 제거
         const seen = new Set<string>()
         map.set(day, games.filter((g) => {
-          const key = g.opp_team ?? ""
+          const key = g.game_id ?? `${g.opp_team ?? ""}_${g.game_time ?? ""}`
           if (seen.has(key)) return false
           seen.add(key)
           return true
