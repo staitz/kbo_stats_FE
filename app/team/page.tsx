@@ -655,12 +655,20 @@ function ScheduleCalendar({
   const monthRows = rows.filter((r) => r.game_date?.startsWith(activeMonth))
 
   // game_date → row 맵 (같은 날 더블헤더 대비 배열)
+  // 같은 날 finished 경기가 있으면 scheduled 행은 제거 (중복 카드 방지)
   const dayMap = useMemo(() => {
     const map = new Map<string, ScheduleRow[]>()
     for (const row of monthRows) {
       const day = row.game_date?.slice(6, 8) ?? ""
       if (!map.has(day)) map.set(day, [])
       map.get(day)!.push(row)
+    }
+    // 결과가 있는 경기가 하나라도 있으면 결과 없는 항목 제거
+    for (const [day, games] of map.entries()) {
+      const hasFinished = games.some((g) => g.result !== null)
+      if (hasFinished) {
+        map.set(day, games.filter((g) => g.result !== null))
+      }
     }
     return map
   }, [monthRows])
