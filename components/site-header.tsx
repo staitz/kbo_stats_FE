@@ -99,7 +99,7 @@ export function SiteHeader() {
         const playerHits: SearchRow[] = []
         for (const data of results) {
           for (const row of data?.rows ?? []) {
-            const key = (row.player_id || row.player_name) + (row.team ?? "")
+            const key = `${row.player_type ?? "hitter"}:${row.player_id || row.player_name}:${row.team ?? ""}`
             if (!seen.has(key)) {
               seen.add(key)
               playerHits.push({ ...row, _type: "player" as const })
@@ -236,9 +236,15 @@ export function SiteHeader() {
                     {lang === "en" ? "No results found." : "검색 결과가 없습니다."}
                   </div>
                 ) : (
-                  <ul>
-                    {results.map((row, idx) => (
-                      <li key={row._type === "team" ? `team-${row.team}` : (row.player_id || row.player_name) + idx}>
+                    <ul>
+                      {results.map((row, idx) => (
+                      <li
+                        key={
+                          row._type === "team"
+                            ? `team-${row.team}`
+                            : `${row.player_type ?? "hitter"}:${row.player_id || row.player_name}:${row.team ?? ""}:${idx}`
+                        }
+                      >
                         <button
                           className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary"
                           onMouseDown={() => handleSelect(row)}
